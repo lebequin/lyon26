@@ -1,0 +1,55 @@
+# Virtual environment
+/venv
+.venv
+env/
+
+# Database
+*.sqlite3
+db.sqlite3
+
+# Media files
+/media
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Static files (collected)
+/staticfiles/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bureaux de vote{% endblock %}
+{% block page_title %}Bureaux de vote{% endblock %}
+
+{% block content %}
+<!-- Global Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Total électeurs</div>
+        <div class="text-2xl font-bold">{{ total_electors|default:0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappées</div>
+        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked|default:0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes ouvertes</div>
+        <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ total_open|default:0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Couverture globale</div>
+        <div class="text-2xl font-bold">{{ coverage_percent|floatformat:1 }}%</div>
+    </div>
+</div>
+
+<!-- Voting Desks Table -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542]">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bureau</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Localisation</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Électeurs</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappées</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ouvertes</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Couverture</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for desk in voting_desks %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+                    <td class="px-4 py-3">
+                        <a href="{% url 'mobilisation:building_list' desk.code %}" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">
+                            {{ desk.code }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ desk.location|default:"-" }}</td>
+                    <td class="px-4 py-3 text-right">{{ desk.total_electors|default:0 }}</td>
+                    <td class="px-4 py-3 text-right">{{ desk.total_knocked|default:0 }}</td>
+                    <td class="px-4 py-3 text-right">{{ desk.total_open|default:0 }}</td>
+                    <td class="px-4 py-3">
+                        <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-300 {% if desk.coverage >= 50 %}bg-green-500{% elif desk.coverage >= 20 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                                 style="width: {{ desk.coverage|floatformat:0 }}%"></div>
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ desk.coverage|floatformat:1 }}%</div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if desk.coverage >= 50 %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Bon</span>
+                        {% elif desk.coverage >= 20 %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">En cours</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">À faire</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">Aucun bureau de vote</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

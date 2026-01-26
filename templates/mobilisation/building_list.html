@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bureau {{ voting_desk.code }}{% endblock %}
+{% block page_title %}Bureau {{ voting_desk.code }} - {{ voting_desk.location }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'mobilisation:voting_desk_list' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+    <span>←</span> Retour aux bureaux
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Desk Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Immeubles</div>
+        <div class="text-xl font-bold">{{ buildings|length }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Électeurs</div>
+        <div class="text-xl font-bold">{{ total_electors }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Frappées</div>
+        <div class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Ouvertes</div>
+        <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ total_open }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Couverture</div>
+        <div class="text-xl font-bold">{{ coverage|floatformat:1 }}%</div>
+    </div>
+</div>
+
+<!-- Buildings Table -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542]">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Adresse</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Électeurs</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappées</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ouvertes</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visites</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for building in buildings %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors {% if building.is_finished %}opacity-60{% endif %}">
+                    <td class="px-4 py-3">{{ building.street_number }} {{ building.street_name }}</td>
+                    <td class="px-4 py-3 text-right">{{ building.num_electors }}</td>
+                    <td class="px-4 py-3 text-right">{{ building.total_knocked|default:0 }}</td>
+                    <td class="px-4 py-3 text-right">{{ building.total_open|default:0 }}</td>
+                    <td class="px-4 py-3 text-center">{{ building.visit_count|default:0 }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if building.is_finished %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Terminé</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">À faire</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <a href="{% url 'mobilisation:dashboard' %}?building={{ building.id }}" class="inline-block px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+                            Visiter
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">Aucun immeuble</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

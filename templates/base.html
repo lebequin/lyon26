@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Lyon 2026{% endblock %} | Porte à Porte</title>
+    <meta name="description" content="Application de gestion du porte à porte pour les élections de Lyon 2026">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f4ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{% load static %}{% static 'css/main.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="font-['Inter'] bg-slate-100 dark:bg-[#0f0f1a] text-slate-800 dark:text-slate-100 min-h-screen">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Navigation -->
+        <nav class="w-64 bg-white dark:bg-gradient-to-b dark:from-[#1a1a2e] dark:to-[#0f0f1a] border-r border-slate-200 dark:border-slate-700 flex flex-col fixed h-screen z-50">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🗳️</span>
+                    <span class="text-xl font-bold bg-gradient-to-r from-primary-500 to-teal-500 bg-clip-text text-transparent">Lyon 2026</span>
+                </div>
+            </div>
+
+            <ul class="flex-1 p-4 space-y-1">
+                <li>
+                    <a href="{% url 'mobilisation:dashboard' %}"
+                        class="flex items-center gap-4 p-3 rounded-lg transition-all
+                        {% if request.resolver_match.url_name == 'dashboard' %}
+                        bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border-l-4 border-primary-500
+                        {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
+                        {% endif %}">
+                        <span class="text-xl">🗺️</span>
+                        <span class="font-medium">Carte</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'mobilisation:voting_desk_list' %}"
+                        class="flex items-center gap-4 p-3 rounded-lg transition-all
+                        {% if request.resolver_match.url_name == 'voting_desk_list' or request.resolver_match.url_name == 'building_list' %}
+                        bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border-l-4 border-primary-500
+                        {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
+                        {% endif %}">
+                        <span class="text-xl">📊</span>
+                        <span class="font-medium">Bureaux de vote</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" class="flex items-center gap-4 p-3 rounded-lg w-full text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all">
+                    <span class="text-xl" id="theme-icon">🌙</span>
+                    <span class="font-medium" id="theme-text">Mode sombre</span>
+                </button>
+                <a href="{% url 'admin:index' %}" class="flex items-center gap-4 p-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all" target="_blank">
+                    <span class="text-xl">⚙️</span>
+                    <span class="font-medium">Administration</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 ml-64 min-h-screen">
+            <header class="flex justify-between items-center p-6 bg-white dark:bg-[#1a1a2e] border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
+                <h1 class="text-2xl font-bold">{% block page_title %}Tableau de bord{% endblock %}</h1>
+                {% block page_actions %}{% endblock %}
+            </header>
+
+            <!-- Messages -->
+            {% if messages %}
+            <div class="px-6 pt-4">
+                {% for message in messages %}
+                <div class="flex justify-between items-center p-4 rounded-lg mb-2 animate-slide-in
+                    {% if message.tags == 'success' %}bg-green-100 dark:bg-green-500/10 border border-green-500 text-green-700 dark:text-green-400
+                    {% elif message.tags == 'warning' %}bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-500 text-yellow-700 dark:text-yellow-400
+                    {% elif message.tags == 'error' %}bg-red-100 dark:bg-red-500/10 border border-red-500 text-red-700 dark:text-red-400
+                    {% else %}bg-blue-100 dark:bg-blue-500/10 border border-blue-500 text-blue-700 dark:text-blue-400{% endif %}">
+                    <span>{{ message }}</span>
+                    <button class="text-xl opacity-70 hover:opacity-100 transition-opacity" onclick="this.parentElement.remove()">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Page Content -->
+            <div class="p-6">
+                {% block content %}{% endblock %}
+            </div>
+
+            <!-- Toast container for notifications -->
+            <div id="toast-container" class="fixed top-6 right-6 z-[1100] flex flex-col gap-2 max-w-sm"></div>
+        </main>
+    </div>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Theme and HTMX Scripts -->
+    <script>
+        // Theme management
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+
+        function setTheme(isDark) {
+            if (isDark) {
+                html.classList.add('dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Mode clair';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.classList.remove('dark');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Mode sombre';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Initialize theme from localStorage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme === 'dark');
+        } else {
+            setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            setTheme(!html.classList.contains('dark'));
+        });
+
+        // HTMX CSRF configuration
+        document.body.addEventListener('htmx:configRequest', function (evt) {
+            evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
+
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-green-100 dark:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400' :
+                           type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400' :
+                           type === 'error' ? 'bg-red-100 dark:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400' :
+                           'bg-blue-100 dark:bg-blue-500/10 border-blue-500 text-blue-700 dark:text-blue-400';
+            toast.className = `flex justify-between items-center p-4 rounded-lg border shadow-lg ${bgClass}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button class="text-xl opacity-70 hover:opacity-100 ml-4" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        document.querySelectorAll('.message-close').forEach(btn => {
+            btn.addEventListener('click', () => btn.parentElement.remove());
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

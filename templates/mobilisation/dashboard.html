@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Carte{% endblock %}
+{% block page_title %}Porte à Porte{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map {
+        width: 100%;
+        height: 100%;
+        min-height: 400px;
+    }
+
+    .leaflet-popup-content {
+        margin: 12px;
+    }
+
+    .popup-title {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .popup-stats {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    .popup-btn {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #6366f1;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-[calc(100vh-160px)] min-h-[500px]">
+    <!-- Map Panel -->
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
+        <div id="map"></div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 overflow-y-auto border border-slate-200 dark:border-slate-700 flex flex-col">
+        <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+            <span>📝</span> Nouvelle visite
+        </h3>
+
+        <form method="post" id="visit-form" class="flex flex-col flex-1">
+            {% csrf_token %}
+
+            <!-- Search field with HTMX -->
+            <div class="mb-4 relative">
+                <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Immeuble</label>
+                <input type="hidden" name="building" id="building-id" required>
+                <div class="relative">
+                    <input type="text" id="building-search"
+                           name="q"
+                           class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Rechercher une adresse..."
+                           autocomplete="off"
+                           hx-get="{% url 'mobilisation:building_search' %}"
+                           hx-trigger="input changed delay:200ms, focus"
+                           hx-target="#search-results"
+                           hx-swap="innerHTML">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                </div>
+                <div id="search-results" class="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-[#252542] border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg hidden">
+                </div>
+            </div>
+
+            <!-- Building info (populated by HTMX or JS) -->
+            <div class="hidden bg-slate-50 dark:bg-[#252542] p-3 rounded-lg mb-4" id="selected-info">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Portes ouvertes</label>
+                    <input type="number" name="open_doors" id="open-doors" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" min="0" value="0" required>
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Portes frappées</label>
+                    <input type="number" name="knocked_doors" id="knocked-doors" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" min="0" value="0" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Date</label>
+                <input type="date" name="date" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Commentaire</label>
+                <textarea name="comment" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 resize-y min-h-[80px] focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Notes sur la visite..."></textarea>
+            </div>
+
+            <div class="flex items-center gap-2 p-3 bg-slate-50 dark:bg-[#252542] rounded-lg mb-4">
+                <input type="checkbox" name="is_finished" id="is-finished" class="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500">
+                <label for="is-finished" class="text-sm">Marquer l'immeuble comme terminé</label>
+            </div>
+
+            <button type="submit" class="mt-auto w-full p-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none" id="submit-btn" disabled>
+                💾 Enregistrer la visite
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Elements
+    const searchInput = document.getElementById('building-search');
+    const searchResults = document.getElementById('search-results');
+    const buildingIdInput = document.getElementById('building-id');
+    const selectedInfo = document.getElementById('selected-info');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // Initialize map centered on Lyon 5e
+    const map = L.map('map').setView([45.7580, 4.8100], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Store markers for reference
+    const markers = {};
+    let selectedMarker = null;
+
+    // Custom marker icons
+    function createIcon(color) {
+        return L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+    }
+
+    const iconDefault = createIcon('#3b82f6');
+    const iconFinished = createIcon('#22c55e');
+    const iconSelected = createIcon('#ef4444');
+
+    // Load buildings for map
+    async function loadBuildings() {
+        try {
+            const response = await fetch('{% url "mobilisation:buildings_api" %}');
+            const data = await response.json();
+
+            data.buildings.forEach(bldg => {
+                const icon = bldg.is_finished ? iconFinished : iconDefault;
+                const marker = L.marker([bldg.latitude, bldg.longitude], { icon })
+                    .addTo(map);
+
+                marker.bindPopup(`
+                    <div>
+                        <div class="popup-title">${bldg.address}</div>
+                        <div class="popup-stats">
+                            Bureau ${bldg.voting_desk} | ${bldg.num_electors} électeurs<br>
+                            Ouvertes: ${bldg.total_open} | Frappées: ${bldg.total_knocked}<br>
+                            <strong>Taux d'ouverture: ${bldg.open_rate}%</strong>
+                        </div>
+                        <button class="popup-btn" onclick="selectBuildingFromMap(${bldg.id})">
+                            Sélectionner
+                        </button>
+                    </div>
+                `);
+
+                markers[bldg.id] = { marker, data: bldg };
+            });
+        } catch (error) {
+            console.error('Error loading buildings:', error);
+        }
+    }
+
+    loadBuildings();
+
+    // Show/hide search results
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+        if (e.detail.target.id === 'search-results') {
+            searchResults.classList.remove('hidden');
+        }
+    });
+
+    // Hide search results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    // Select building from search results (called from partial template)
+    function selectBuildingFromSearch(id, address, totalOpen, totalKnocked, isFinished) {
+        buildingIdInput.value = id;
+        searchInput.value = address;
+        searchResults.classList.add('hidden');
+        selectedInfo.classList.remove('hidden');
+        submitBtn.disabled = false;
+
+        // Fill form
+        document.getElementById('open-doors').value = totalOpen;
+        document.getElementById('knocked-doors').value = totalKnocked;
+        document.getElementById('is-finished').checked = isFinished;
+
+        // Update marker
+        updateSelectedMarker(id);
+    }
+
+    // Select building from map marker
+    function selectBuildingFromMap(id) {
+        if (!markers[id]) return;
+
+        const bldg = markers[id].data;
+        buildingIdInput.value = id;
+        searchInput.value = bldg.address;
+        submitBtn.disabled = false;
+
+        // Fill form
+        document.getElementById('open-doors').value = bldg.total_open;
+        document.getElementById('knocked-doors').value = bldg.total_knocked;
+        document.getElementById('is-finished').checked = bldg.is_finished;
+
+        // Update info box via HTMX
+        htmx.ajax('GET', '{% url "mobilisation:building_detail" 0 %}'.replace('0', id), {target: '#selected-info', swap: 'innerHTML'});
+        selectedInfo.classList.remove('hidden');
+
+        // Update marker
+        updateSelectedMarker(id);
+    }
+
+    // Update marker styling
+    function updateSelectedMarker(id) {
+        // Reset previous marker
+        if (selectedMarker && markers[selectedMarker]) {
+            const prevData = markers[selectedMarker].data;
+            markers[selectedMarker].marker.setIcon(prevData.is_finished ? iconFinished : iconDefault);
+        }
+
+        // Highlight new marker
+        if (markers[id]) {
+            markers[id].marker.setIcon(iconSelected);
+            selectedMarker = id;
+            map.panTo(markers[id].marker.getLatLng());
+        } else {
+            selectedMarker = null;
+        }
+    }
+
+    // Form submission
+    document.getElementById('visit-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        try {
+            const response = await fetch('{% url "mobilisation:add_visit" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Visite enregistrée!', 'success');
+
+                const newOpen = parseInt(formData.get('open_doors')) || 0;
+                const newKnocked = parseInt(formData.get('knocked_doors')) || 0;
+                const isFinished = formData.get('is_finished') === 'on';
+
+                // Update marker data and color
+                if (selectedMarker && markers[selectedMarker]) {
+                    markers[selectedMarker].data.total_open = newOpen;
+                    markers[selectedMarker].data.total_knocked = newKnocked;
+                    markers[selectedMarker].data.open_rate = newKnocked > 0 ? Math.round(newOpen / newKnocked * 1000) / 10 : 0;
+                    markers[selectedMarker].data.is_finished = isFinished;
+                    markers[selectedMarker].marker.setIcon(isFinished ? iconFinished : iconDefault);
+                }
+
+                // Reset form
+                this.reset();
+                buildingIdInput.value = '';
+                searchInput.value = '';
+                submitBtn.disabled = true;
+                selectedInfo.classList.add('hidden');
+                selectedMarker = null;
+            } else {
+                showToast('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
+            }
+        } catch (error) {
+            showToast('Erreur de connexion', 'error');
+        }
+    });
+</script>
+{% endblock %}

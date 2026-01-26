@@ -1,0 +1,7 @@
+<h4 class="font-semibold mb-2">{{ building }}</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400">Bureau: {{ building.voting_desk.code }} | Électeurs: {{ building.num_electors }}</p>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+    Ouvertes: <span class="font-medium text-green-600 dark:text-green-400">{{ building.total_open }}</span> |
+    Frappées: <span class="font-medium text-primary-600 dark:text-primary-400">{{ building.total_knocked }}</span> |
+    Taux: <span class="font-medium text-amber-600 dark:text-amber-400">{{ building.open_rate }}%</span>
+</p>
