@@ -26,3 +26,11 @@ services:
         value: "https://*.onrender.com"
       - key: PYTHON_VERSION
         value: "3.11.0"
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_IMPORT_SCRIPT
+        value: "False"
