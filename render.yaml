@@ -1,0 +1,28 @@
+databases:
+  - name: lyon26-db
+    plan: free
+    databaseName: lyon26
+    user: lyon26
+
+services:
+  - type: web
+    name: lyon26
+    plan: free
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn lyon26.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lyon26-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
