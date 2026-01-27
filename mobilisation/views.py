@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.views.generic import TemplateView, ListView
 from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum, Count, Q
 from django.shortcuts import get_object_or_404, render
 
@@ -8,7 +9,7 @@ from territory.models import Building, VotingDesk
 from .models import Visit
 
 
-class DashboardView(TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     """Main dashboard with map and visit form"""
     template_name = 'mobilisation/dashboard.html'
 
@@ -21,7 +22,7 @@ class DashboardView(TemplateView):
         return context
 
 
-class AddVisitView(View):
+class AddVisitView(LoginRequiredMixin, View):
     """API endpoint to add a visit"""
 
     def post(self, request):
@@ -53,7 +54,7 @@ class AddVisitView(View):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
-class BuildingsAPIView(View):
+class BuildingsAPIView(LoginRequiredMixin, View):
     """JSON API endpoint for map markers - only visited buildings"""
 
     def get(self, request):
@@ -88,7 +89,7 @@ class BuildingsAPIView(View):
         return JsonResponse({'buildings': data})
 
 
-class VotingDeskListView(TemplateView):
+class VotingDeskListView(LoginRequiredMixin, TemplateView):
     """List of voting desks with statistics"""
     template_name = 'mobilisation/voting_desk_list.html'
 
@@ -132,7 +133,7 @@ class VotingDeskListView(TemplateView):
         return context
 
 
-class BuildingSearchView(View):
+class BuildingSearchView(LoginRequiredMixin, View):
     """HTMX endpoint for building search autocomplete"""
 
     def get(self, request):
@@ -145,12 +146,22 @@ class BuildingSearchView(View):
             Q(street_name__icontains=query) | Q(street_number__icontains=query),
             latitude__isnull=False,
             longitude__isnull=False
+        ).select_related('voting_desk').annotate(
+            total_open=Sum('visits__open_doors'),
+            total_knocked=Sum('visits__knocked_doors'),
+            visit_count=Count('visits')
         ).order_by('street_name', 'street_number')
+
+        # Calculate open rate for each building
+        for bldg in buildings:
+            bldg.total_open = bldg.total_open or 0
+            bldg.total_knocked = bldg.total_knocked or 0
+            bldg.open_rate = round((bldg.total_open / bldg.total_knocked * 100), 1) if bldg.total_knocked > 0 else 0
 
         return render(request, 'mobilisation/partials/building_search_results.html', {'buildings': buildings})
 
 
-class BuildingDetailView(View):
+class BuildingDetailView(LoginRequiredMixin, View):
     """HTMX endpoint for building details (info box)"""
 
     def get(self, request, pk):
@@ -170,7 +181,7 @@ class BuildingDetailView(View):
         return render(request, 'mobilisation/partials/building_info.html', {'building': building})
 
 
-class BuildingListView(TemplateView):
+class BuildingListView(LoginRequiredMixin, TemplateView):
     """List of buildings for a specific voting desk"""
     template_name = 'mobilisation/building_list.html'
 

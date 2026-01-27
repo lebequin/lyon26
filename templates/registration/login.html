@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion | Lyon 2026</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f4ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="font-['Inter'] bg-slate-100 dark:bg-[#0f0f1a] text-slate-800 dark:text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-3 mb-2">
+                <span class="text-4xl">🗳️</span>
+                <span class="text-3xl font-bold bg-gradient-to-r from-primary-500 to-teal-500 bg-clip-text text-transparent">Lyon 2026</span>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400">Outil de suivi de la mobilisation</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white dark:bg-[#1e1e35] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+            <h1 class="text-2xl font-bold text-center mb-6">Connexion</h1>
+
+            {% if form.errors %}
+            <div class="mb-6 p-4 bg-red-100 dark:bg-red-500/10 border border-red-500 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                Identifiants incorrects. Veuillez réessayer.
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+
+                <div>
+                    <label for="id_username" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Nom d'utilisateur</label>
+                    <input type="text" name="username" id="id_username" autofocus
+                        class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                        placeholder="Entrez votre nom d'utilisateur" required>
+                </div>
+
+                <div>
+                    <label for="id_password" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Mot de passe</label>
+                    <input type="password" name="password" id="id_password"
+                        class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                        placeholder="Entrez votre mot de passe" required>
+                </div>
+
+                <button type="submit" class="w-full p-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-primary-500/30">
+                    Se connecter
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Theme initialization -->
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else if (!savedTheme && !window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</body>
+
+</html>
