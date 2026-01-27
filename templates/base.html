@@ -88,10 +88,12 @@
                     <span class="text-xl" id="theme-icon">🌙</span>
                     <span class="font-medium" id="theme-text">Mode sombre</span>
                 </button>
+                {% if user.username == ADMIN_USERNAME %}
                 <a href="{% url 'admin:index' %}" class="flex items-center gap-4 p-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all" target="_blank">
                     <span class="text-xl">⚙️</span>
                     <span class="font-medium">Administration</span>
                 </a>
+                {% endif %}
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-4 p-3 rounded-lg w-full text-slate-600 dark:text-slate-400 hover:bg-red-100 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all">
