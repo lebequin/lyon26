@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ building }} - Visites{% endblock %}
+{% block page_title %}{{ building }}{% endblock %}
+
+{% block page_actions %}
+<div class="flex gap-2">
+    <a href="{% url 'mobilisation:building_list' building.voting_desk.code %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+        <span>&larr;</span><span class="hidden sm:inline"> Retour</span>
+    </a>
+    <a href="{% url 'mobilisation:visit_create' building_pk=building.pk %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors text-sm sm:text-base">
+        <span>+</span><span class="hidden sm:inline"> Nouvelle visite</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Building Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Bureau</div>
+        <div class="text-xl font-bold">{{ building.voting_desk.code }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Electeurs</div>
+        <div class="text-xl font-bold">{{ building.num_electors }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes ouvertes</div>
+        <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ total_open }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappees</div>
+        <div class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
+    </div>
+</div>
+
+<!-- Status -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+    <div class="flex items-center gap-3">
+        <span class="text-base sm:text-lg">Statut:</span>
+        {% if building.is_finished %}
+        <span class="inline-block px-3 py-1 text-sm font-medium rounded-full bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Termine</span>
+        {% else %}
+        <span class="inline-block px-3 py-1 text-sm font-medium rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">A faire</span>
+        {% endif %}
+    </div>
+    <div class="text-base sm:text-lg">
+        Taux d'ouverture: <span class="font-bold {% if open_rate >= 50 %}text-green-600 dark:text-green-400{% elif open_rate >= 25 %}text-yellow-600 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ open_rate }}%</span>
+    </div>
+</div>
+
+<!-- Visits List -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-semibold">Historique des visites ({{ visits|length }})</h2>
+    </div>
+
+    {% if visits %}
+    <div class="divide-y divide-slate-200 dark:divide-slate-700">
+        {% for visit in visits %}
+        <div class="p-4 hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <span class="text-base sm:text-lg font-semibold">{{ visit.date|date:"d/m/Y" }}</span>
+                        <span class="text-sm text-slate-500 dark:text-slate-400">
+                            {{ visit.open_doors }} ouvertes / {{ visit.knocked_doors }} frappees
+                            ({{ visit.open_rate }}%)
+                        </span>
+                    </div>
+                    {% if visit.comment %}
+                    <p class="text-slate-600 dark:text-slate-300 text-sm">{{ visit.comment }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{% url 'mobilisation:visit_edit' pk=visit.pk %}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                        Modifier
+                    </a>
+                    <form method="post" action="{% url 'mobilisation:visit_delete' pk=visit.pk %}" onsubmit="return confirm('Supprimer cette visite ?');">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors">
+                            Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-slate-500 dark:text-slate-400">
+        <p class="mb-4">Aucune visite enregistree pour cet immeuble.</p>
+        <a href="{% url 'mobilisation:visit_create' building_pk=building.pk %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+            <span>+</span> Ajouter une visite
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

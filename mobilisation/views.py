@@ -3,7 +3,8 @@ from django.views.generic import TemplateView, ListView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum, Count, Q
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 
 from territory.models import Building, VotingDesk
 from .models import Visit
@@ -221,3 +222,110 @@ class BuildingListView(LoginRequiredMixin, TemplateView):
             context['coverage'] = 0
 
         return context
+
+
+class BuildingVisitsView(LoginRequiredMixin, TemplateView):
+    """List of visits for a specific building"""
+    template_name = 'mobilisation/building_visits.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        building_id = self.kwargs.get('pk')
+        building = get_object_or_404(
+            Building.objects.select_related('voting_desk').annotate(
+                total_open=Sum('visits__open_doors'),
+                total_knocked=Sum('visits__knocked_doors'),
+                visit_count=Count('visits')
+            ),
+            pk=building_id
+        )
+
+        context['building'] = building
+        context['visits'] = building.visits.all().order_by('-date', '-created_at')
+
+        # Calculate stats
+        context['total_open'] = building.total_open or 0
+        context['total_knocked'] = building.total_knocked or 0
+        context['open_rate'] = round((context['total_open'] / context['total_knocked'] * 100), 1) if context['total_knocked'] > 0 else 0
+
+        return context
+
+
+class VisitCreateView(LoginRequiredMixin, View):
+    """Create a new visit for a building"""
+
+    def get(self, request, building_pk):
+        building = get_object_or_404(Building.objects.select_related('voting_desk'), pk=building_pk)
+        return render(request, 'mobilisation/visit_form.html', {
+            'building': building,
+            'visit': None,
+            'is_edit': False
+        })
+
+    def post(self, request, building_pk):
+        building = get_object_or_404(Building, pk=building_pk)
+
+        open_doors = int(request.POST.get('open_doors', 0))
+        knocked_doors = int(request.POST.get('knocked_doors', 0))
+        date = request.POST.get('date')
+        comment = request.POST.get('comment', '')
+        is_finished = request.POST.get('is_finished') == 'on'
+
+        visit = Visit.objects.create(
+            open_doors=open_doors,
+            knocked_doors=knocked_doors,
+            date=date,
+            comment=comment
+        )
+        visit.buildings.add(building)
+
+        if is_finished:
+            building.is_finished = True
+            building.save(update_fields=['is_finished'])
+
+        return redirect('mobilisation:building_visits', pk=building_pk)
+
+
+class VisitEditView(LoginRequiredMixin, View):
+    """Edit an existing visit"""
+
+    def get(self, request, pk):
+        visit = get_object_or_404(Visit, pk=pk)
+        building = visit.buildings.first()
+        return render(request, 'mobilisation/visit_form.html', {
+            'building': building,
+            'visit': visit,
+            'is_edit': True
+        })
+
+    def post(self, request, pk):
+        visit = get_object_or_404(Visit, pk=pk)
+        building = visit.buildings.first()
+
+        visit.open_doors = int(request.POST.get('open_doors', 0))
+        visit.knocked_doors = int(request.POST.get('knocked_doors', 0))
+        visit.date = request.POST.get('date')
+        visit.comment = request.POST.get('comment', '')
+        visit.save()
+
+        is_finished = request.POST.get('is_finished') == 'on'
+        if building:
+            building.is_finished = is_finished
+            building.save(update_fields=['is_finished'])
+
+        return redirect('mobilisation:building_visits', pk=building.pk if building else 1)
+
+
+class VisitDeleteView(LoginRequiredMixin, View):
+    """Delete a visit"""
+
+    def post(self, request, pk):
+        visit = get_object_or_404(Visit, pk=pk)
+        building = visit.buildings.first()
+        building_pk = building.pk if building else None
+        visit.delete()
+
+        if building_pk:
+            return redirect('mobilisation:building_visits', pk=building_pk)
+        return redirect('mobilisation:dashboard')

@@ -27,10 +27,12 @@ class DistrictAdmin(admin.ModelAdmin):
 
 @admin.register(VotingDesk)
 class VotingDeskAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'location', 'district', 'building_count', 'total_electors')
-    list_filter = ('district',)
+    list_display = ('priority', 'name', 'code', 'location', 'district', 'building_count', 'total_electors')
+    list_display_links = ('name', 'code')
+    list_filter = ('district', 'priority')
     search_fields = ('name', 'code')
     ordering = ('code',)
+    list_editable = ('priority',)
 
     def building_count(self, obj):
         return obj.buildings.count()

@@ -15,11 +15,12 @@ class VotingDesk(models.Model):
         related_name='voting_desks',
         verbose_name="District"
     )
+    priority = models.PositiveIntegerField(null=True, blank=True, verbose_name="Priorité", help_text="1 = priorité maximale")
 
     class Meta:
         verbose_name = "Bureau de vote"
         verbose_name_plural = "Bureaux de vote"
-        ordering = ['code']
+        ordering = ['priority', 'code']
 
     def __str__(self):
         return self.name

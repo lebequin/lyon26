@@ -5,8 +5,8 @@
 {% block page_title %}Bureau {{ voting_desk.code }} - {{ voting_desk.location }}{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'mobilisation:voting_desk_list' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-    <span>←</span> Retour aux bureaux
+<a href="{% url 'mobilisation:voting_desk_list' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>&larr;</span><span class="hidden sm:inline"> Retour aux bureaux</span>
 </a>
 {% endblock %}
 
@@ -53,7 +53,11 @@
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                 {% for building in buildings %}
                 <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors {% if building.is_finished %}opacity-60{% endif %}">
-                    <td class="px-4 py-3">{{ building.street_number }} {{ building.street_name }}</td>
+                    <td class="px-4 py-3">
+                        <a href="{% url 'mobilisation:building_visits' pk=building.pk %}" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">
+                            {{ building.street_number }} {{ building.street_name }}
+                        </a>
+                    </td>
                     <td class="px-4 py-3 text-right">{{ building.num_electors }}</td>
                     <td class="px-4 py-3 text-right">{{ building.total_knocked|default:0 }}</td>
                     <td class="px-4 py-3 text-right">{{ building.total_open|default:0 }}</td>
