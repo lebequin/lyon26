@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Visit
+from .models import Visit, Tractage
 
 
 @admin.register(Visit)
@@ -22,3 +22,12 @@ class VisitAdmin(admin.ModelAdmin):
     def open_rate(self, obj):
         return f"{obj.open_rate}%"
     open_rate.short_description = "Taux d'ouverture"
+
+
+@admin.register(Tractage)
+class TractageAdmin(admin.ModelAdmin):
+    list_display = ('label', 'type_tractage', 'voting_desk', 'nb_tractage', 'address')
+    list_filter = ('type_tractage', 'voting_desk')
+    search_fields = ('label', 'address')
+    list_editable = ('nb_tractage',)
+    ordering = ('-nb_tractage', 'label')

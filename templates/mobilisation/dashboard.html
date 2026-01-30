@@ -142,15 +142,16 @@
     function createIcon(color) {
         return L.divIcon({
             className: 'custom-marker',
-            html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
+            html: `<div style="background:${color};width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
         });
     }
 
     const iconDefault = createIcon('#3b82f6');
     const iconFinished = createIcon('#22c55e');
     const iconSelected = createIcon('#ef4444');
+    const iconTractage = createIcon('#8b5cf6');
 
     // Load buildings for map
     async function loadBuildings() {
@@ -185,6 +186,34 @@
     }
 
     loadBuildings();
+
+    // Load tractages for map
+    async function loadTractages() {
+        try {
+            const response = await fetch('{% url "mobilisation:tractages_api" %}');
+            const data = await response.json();
+
+            data.tractages.forEach(t => {
+                const marker = L.marker([t.latitude, t.longitude], { icon: iconTractage })
+                    .addTo(map);
+
+                marker.bindPopup(`
+                    <div>
+                        <div class="popup-title">${t.label}</div>
+                        <div class="popup-stats">
+                            ${t.type_display}${t.voting_desk ? ' | Bureau ' + t.voting_desk : ''}<br>
+                            ${t.address ? t.address + '<br>' : ''}
+                            <strong>Tractages: ${t.nb_tractage}</strong>
+                        </div>
+                    </div>
+                `);
+            });
+        } catch (error) {
+            console.error('Error loading tractages:', error);
+        }
+    }
+
+    loadTractages();
 
     // Show/hide search results
     document.body.addEventListener('htmx:afterSwap', function(e) {

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tractage{% endblock %}
+{% block page_title %}Tractage{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'mobilisation:tractage_create' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors text-sm sm:text-base">
+    <span>+</span><span class="hidden sm:inline"> Nouveau lieu</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Lieux de tractage</div>
+        <div class="text-2xl font-bold">{{ tractages|length }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Total tractages</div>
+        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_tractages }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center col-span-2 sm:col-span-1">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Moyenne par lieu</div>
+        <div class="text-2xl font-bold">{% if tractages|length > 0 %}{{ total_tractages|floatformat:0 }}{% else %}0{% endif %}</div>
+    </div>
+</div>
+
+<!-- Tractage List -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542]">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lieu</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden sm:table-cell">Bureau</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tractages</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for tractage in tractages %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="font-medium">{{ tractage.label }}</div>
+                        {% if tractage.address %}
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ tractage.address }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full
+                            {% if tractage.type_tractage == 'marche' %}bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400
+                            {% elif tractage.type_tractage == 'metro' %}bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400
+                            {% elif tractage.type_tractage == 'bus' %}bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400
+                            {% elif tractage.type_tractage == 'commerce' %}bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400
+                            {% elif tractage.type_tractage == 'ecole' %}bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400
+                            {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400{% endif %}">
+                            {{ tractage.get_type_tractage_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 hidden sm:table-cell text-slate-600 dark:text-slate-300">
+                        {% if tractage.voting_desk %}{{ tractage.voting_desk.code }}{% else %}-{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right" id="tractage-count-{{ tractage.pk }}">
+                        <span class="font-semibold text-primary-600 dark:text-primary-400">{{ tractage.nb_tractage }}</span>
+                        <button hx-post="{% url 'mobilisation:tractage_increment' pk=tractage.pk %}"
+                                hx-target="#tractage-count-{{ tractage.pk }}"
+                                hx-swap="innerHTML"
+                                class="ml-2 inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-500/30 transition-colors">
+                            +
+                        </button>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-center gap-2">
+                            <a href="{% url 'mobilisation:tractage_edit' pk=tractage.pk %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                Modifier
+                            </a>
+                            <form method="post" action="{% url 'mobilisation:tractage_delete' pk=tractage.pk %}" onsubmit="return confirm('Supprimer ce lieu ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors">
+                                    Suppr.
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        <p class="mb-4">Aucun lieu de tractage enregistre.</p>
+                        <a href="{% url 'mobilisation:tractage_create' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+                            <span>+</span> Ajouter un lieu
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

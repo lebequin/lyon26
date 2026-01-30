@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Modifier{% else %}Nouveau{% endif %} lieu de tractage{% endblock %}
+{% block page_title %}{% if is_edit %}Modifier le lieu{% else %}Nouveau lieu de tractage{% endif %}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'mobilisation:tractage_list' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>&larr;</span><span class="hidden sm:inline"> Annuler</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+            <h2 class="text-lg font-semibold">{% if is_edit %}Modifier le lieu{% else %}Ajouter un lieu de tractage{% endif %}</h2>
+        </div>
+
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label for="label" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Nom du lieu *</label>
+                <input type="text" name="label" id="label"
+                       class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                       value="{{ tractage.label|default:'' }}" required
+                       placeholder="Ex: Marche Saint-Jean">
+            </div>
+
+            <div>
+                <label for="type_tractage" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Type de lieu</label>
+                <select name="type_tractage" id="type_tractage"
+                        class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    {% for value, display in type_choices %}
+                    <option value="{{ value }}" {% if tractage.type_tractage == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="address" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Adresse</label>
+                <input type="text" name="address" id="address"
+                       class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                       value="{{ tractage.address|default:'' }}"
+                       placeholder="Ex: Place Saint-Jean, Lyon 5e">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="latitude" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Latitude</label>
+                    <input type="number" step="any" name="latitude" id="latitude"
+                           class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           value="{{ tractage.latitude|default:'' }}"
+                           placeholder="45.7600">
+                </div>
+                <div>
+                    <label for="longitude" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Longitude</label>
+                    <input type="number" step="any" name="longitude" id="longitude"
+                           class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                           value="{{ tractage.longitude|default:'' }}"
+                           placeholder="4.8200">
+                </div>
+            </div>
+
+            <div>
+                <label for="voting_desk" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Bureau de vote</label>
+                <select name="voting_desk" id="voting_desk"
+                        class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">-- Aucun --</option>
+                    {% for desk in voting_desks %}
+                    <option value="{{ desk.pk }}" {% if tractage.voting_desk_id == desk.pk %}selected{% endif %}>{{ desk.code }} - {{ desk.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="nb_tractage" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Nombre de tractages</label>
+                <input type="number" name="nb_tractage" id="nb_tractage"
+                       class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                       value="{{ tractage.nb_tractage|default:0 }}" min="0">
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 p-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-primary-500/30">
+                    {% if is_edit %}Enregistrer les modifications{% else %}Ajouter le lieu{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
