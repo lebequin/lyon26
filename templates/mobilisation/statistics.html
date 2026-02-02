@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Statistiques{% endblock %}
+{% block page_title %}Statistiques{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        min-height: 300px;
+        width: 100%;
+    }
+    @media (min-width: 640px) {
+        .chart-container {
+            min-height: 350px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappees</div>
+        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes ouvertes</div>
+        <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ total_open }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Tractages</div>
+        <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ total_tractages }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Taux d'ouverture</div>
+        <div class="text-2xl font-bold">{% if total_knocked > 0 %}{{ total_open|floatformat:0 }}%{% else %}0%{% endif %}</div>
+    </div>
+</div>
+
+<!-- Doors Knocked vs Open Line Chart -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Evolution des portes frappees et ouvertes</h2>
+    <div class="chart-container">
+        <div id="doorsLineChart"></div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Weekly Evolution Chart -->
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-semibold mb-4">Evolution par semaine</h2>
+        <div class="chart-container">
+            <div id="weeklyChart"></div>
+        </div>
+    </div>
+
+    <!-- Monthly Evolution Chart -->
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-semibold mb-4">Evolution par mois</h2>
+        <div class="chart-container">
+            <div id="monthlyChart"></div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Tractage by Type Chart -->
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-semibold mb-4">Tractage par type de lieu</h2>
+        <div class="chart-container">
+            <div id="tractageTypeChart"></div>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-semibold mb-4">Resume</h2>
+        <div class="space-y-4">
+            <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#252542] rounded-lg">
+                <span class="text-slate-600 dark:text-slate-400">Nombre de visites</span>
+                <span class="font-bold text-lg">{{ total_visits }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#252542] rounded-lg">
+                <span class="text-slate-600 dark:text-slate-400">Lieux de tractage</span>
+                <span class="font-bold text-lg">{{ total_tractage_locations }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#252542] rounded-lg">
+                <span class="text-slate-600 dark:text-slate-400">Total actions terrain</span>
+                <span class="font-bold text-lg text-primary-600 dark:text-primary-400">{{ total_knocked|add:total_tractages }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-200 dark:border-green-500/30">
+                <span class="text-green-700 dark:text-green-400">Contacts positifs</span>
+                <span class="font-bold text-lg text-green-600 dark:text-green-400">{{ total_open }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    // Theme detection
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    const bgColor = isDark ? '#1e1e35' : '#ffffff';
+
+    // Common chart options
+    const commonOptions = {
+        chart: {
+            background: 'transparent',
+            toolbar: { show: false },
+            fontFamily: 'Inter, sans-serif'
+        },
+        theme: {
+            mode: isDark ? 'dark' : 'light'
+        },
+        grid: {
+            borderColor: gridColor,
+            strokeDashArray: 4
+        },
+        tooltip: {
+            theme: isDark ? 'dark' : 'light'
+        }
+    };
+
+    // Doors Line Chart (Knocked vs Open over weeks)
+    const doorsLineOptions = {
+        ...commonOptions,
+        chart: {
+            ...commonOptions.chart,
+            type: 'line',
+            height: 300
+        },
+        series: [{
+            name: 'Portes frappees',
+            data: {{ weekly_knocked_data|safe }}
+        }, {
+            name: 'Portes ouvertes',
+            data: {{ weekly_open_data|safe }}
+        }],
+        colors: ['#6366f1', '#22c55e'],
+        stroke: {
+            curve: 'smooth',
+            width: 3
+        },
+        markers: {
+            size: 5,
+            hover: { size: 7 }
+        },
+        xaxis: {
+            categories: {{ weeks_labels|safe }},
+            labels: { style: { colors: textColor } },
+            axisBorder: { color: gridColor },
+            axisTicks: { color: gridColor }
+        },
+        yaxis: {
+            labels: { style: { colors: textColor } }
+        },
+        legend: {
+            position: 'top',
+            labels: { colors: textColor }
+        }
+    };
+
+    const doorsLineChart = new ApexCharts(document.querySelector("#doorsLineChart"), doorsLineOptions);
+    doorsLineChart.render();
+
+    // Weekly Evolution Chart
+    const weeklyOptions = {
+        ...commonOptions,
+        chart: {
+            ...commonOptions.chart,
+            type: 'area',
+            height: 300
+        },
+        series: [{
+            name: 'Portes frappees',
+            data: {{ weekly_knocked_data|safe }}
+        }, {
+            name: 'Portes ouvertes',
+            data: {{ weekly_open_data|safe }}
+        }],
+        colors: ['#6366f1', '#22c55e'],
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.4,
+                opacityTo: 0.1,
+                stops: [0, 90, 100]
+            }
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 3
+        },
+        xaxis: {
+            categories: {{ weeks_labels|safe }},
+            labels: { style: { colors: textColor } },
+            axisBorder: { color: gridColor },
+            axisTicks: { color: gridColor }
+        },
+        yaxis: {
+            labels: { style: { colors: textColor } }
+        },
+        legend: {
+            position: 'top',
+            labels: { colors: textColor }
+        },
+        markers: {
+            size: 4,
+            hover: { size: 6 }
+        }
+    };
+
+    const weeklyChart = new ApexCharts(document.querySelector("#weeklyChart"), weeklyOptions);
+    weeklyChart.render();
+
+    // Monthly Evolution Chart
+    const monthlyOptions = {
+        ...commonOptions,
+        chart: {
+            ...commonOptions.chart,
+            type: 'bar',
+            height: 300,
+            stacked: false
+        },
+        series: [{
+            name: 'Portes frappees',
+            data: {{ monthly_knocked_data|safe }}
+        }, {
+            name: 'Portes ouvertes',
+            data: {{ monthly_open_data|safe }}
+        }],
+        colors: ['#6366f1', '#22c55e'],
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '60%',
+                borderRadius: 6
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        xaxis: {
+            categories: {{ months_labels|safe }},
+            labels: { style: { colors: textColor } },
+            axisBorder: { color: gridColor },
+            axisTicks: { color: gridColor }
+        },
+        yaxis: {
+            labels: { style: { colors: textColor } }
+        },
+        legend: {
+            position: 'top',
+            labels: { colors: textColor }
+        }
+    };
+
+    const monthlyChart = new ApexCharts(document.querySelector("#monthlyChart"), monthlyOptions);
+    monthlyChart.render();
+
+    // Tractage by Type Donut Chart
+    const tractageTypeOptions = {
+        ...commonOptions,
+        chart: {
+            ...commonOptions.chart,
+            type: 'donut',
+            height: 300
+        },
+        series: {{ tractage_type_data|safe }},
+        labels: {{ tractage_type_labels|safe }},
+        colors: ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#f97316', '#64748b'],
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '60%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'Total',
+                            color: textColor,
+                            formatter: function(w) {
+                                return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function(val, opts) {
+                return opts.w.config.series[opts.seriesIndex];
+            }
+        },
+        legend: {
+            position: 'bottom',
+            labels: { colors: textColor }
+        }
+    };
+
+    const tractageTypeChart = new ApexCharts(document.querySelector("#tractageTypeChart"), tractageTypeOptions);
+    tractageTypeChart.render();
+</script>
+{% endblock %}

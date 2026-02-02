@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Actions{% endblock %}
+{% block page_title %}Actions{% endblock %}
+
+{% block content %}
+<!-- Visits Table -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542]">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Adresse</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden sm:table-cell">Bureau</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ouvertes</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappees</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell">Commentaire</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for item in visits %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="font-medium">{{ item.visit.date|date:"d/m/Y" }}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ item.visit.created_at|date:"H:i" }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if item.building %}
+                        <a href="{% url 'mobilisation:building_visits' pk=item.building.pk %}" class="text-primary-600 dark:text-primary-400 hover:underline">
+                            {{ item.address }}
+                        </a>
+                        {% else %}
+                        <span class="text-slate-400">{{ item.address }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center hidden sm:table-cell">
+                        <span class="text-slate-600 dark:text-slate-300">{{ item.voting_desk }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-medium text-green-600 dark:text-green-400">{{ item.visit.open_doors }}</td>
+                    <td class="px-4 py-3 text-right font-medium">{{ item.visit.knocked_doors }}</td>
+                    <td class="px-4 py-3 hidden md:table-cell">
+                        {% if item.visit.comment %}
+                        <span class="text-sm text-slate-600 dark:text-slate-400 line-clamp-1" title="{{ item.visit.comment }}">{{ item.visit.comment|truncatechars:40 }}</span>
+                        {% else %}
+                        <span class="text-slate-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-center gap-2">
+                            <a href="{% url 'mobilisation:visit_edit' pk=item.visit.pk %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                Modifier
+                            </a>
+                            <form method="post" action="{% url 'mobilisation:visit_delete' pk=item.visit.pk %}" onsubmit="return confirm('Supprimer cette visite ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors">
+                                    Suppr.
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        Aucune visite enregistree.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

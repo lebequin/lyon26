@@ -1,10 +1,13 @@
-from django.http import JsonResponse
+import csv
+from django.http import JsonResponse, HttpResponse
 from django.views.generic import TemplateView, ListView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncWeek, TruncMonth
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
+from datetime import datetime, timedelta
 
 from territory.models import Building, VotingDesk
 from .models import Visit, Tractage
@@ -224,6 +227,32 @@ class BuildingListView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class BuildingCreateView(LoginRequiredMixin, View):
+    """Create a new building for a voting desk"""
+
+    def get(self, request, voting_desk_code):
+        voting_desk = get_object_or_404(VotingDesk, code=voting_desk_code)
+        return render(request, 'mobilisation/building_form.html', {
+            'voting_desk': voting_desk,
+            'building': None,
+            'is_edit': False
+        })
+
+    def post(self, request, voting_desk_code):
+        voting_desk = get_object_or_404(VotingDesk, code=voting_desk_code)
+
+        building = Building.objects.create(
+            street_number=request.POST.get('street_number', ''),
+            street_name=request.POST.get('street_name', ''),
+            num_electors=int(request.POST.get('num_electors', 0)),
+            voting_desk=voting_desk,
+            latitude=request.POST.get('latitude') or None,
+            longitude=request.POST.get('longitude') or None
+        )
+
+        return redirect('mobilisation:building_list', voting_desk_code=voting_desk_code)
+
+
 class BuildingVisitsView(LoginRequiredMixin, TemplateView):
     """List of visits for a specific building"""
     template_name = 'mobilisation/building_visits.html'
@@ -437,3 +466,214 @@ class TractageAPIView(LoginRequiredMixin, View):
             })
 
         return JsonResponse({'tractages': data})
+
+
+class ActionsListView(LoginRequiredMixin, TemplateView):
+    """List of all visits ordered by date descending"""
+    template_name = 'mobilisation/actions_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        visits = Visit.objects.prefetch_related('buildings', 'buildings__voting_desk').order_by('-date', '-created_at')
+
+        # Add building info to each visit
+        visits_with_info = []
+        for visit in visits:
+            building = visit.buildings.first()
+            visits_with_info.append({
+                'visit': visit,
+                'building': building,
+                'address': str(building) if building else 'N/A',
+                'voting_desk': building.voting_desk.code if building and building.voting_desk else 'N/A',
+            })
+
+        context['visits'] = visits_with_info
+        context['total_visits'] = visits.count()
+
+        return context
+
+
+class StatisticsView(LoginRequiredMixin, TemplateView):
+    """Statistics dashboard with charts"""
+    template_name = 'mobilisation/statistics.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Weekly evolution of visits
+        weekly_visits = Visit.objects.annotate(
+            week=TruncWeek('date')
+        ).values('week').annotate(
+            total_knocked=Sum('knocked_doors'),
+            total_open=Sum('open_doors')
+        ).order_by('week')
+
+        weeks_labels = []
+        weekly_knocked_data = []
+        weekly_open_data = []
+
+        for entry in weekly_visits:
+            if entry['week']:
+                weeks_labels.append(entry['week'].strftime('%d/%m'))
+                weekly_knocked_data.append(entry['total_knocked'] or 0)
+                weekly_open_data.append(entry['total_open'] or 0)
+
+        context['weeks_labels'] = weeks_labels
+        context['weekly_knocked_data'] = weekly_knocked_data
+        context['weekly_open_data'] = weekly_open_data
+
+        # Monthly evolution of visits
+        monthly_visits = Visit.objects.annotate(
+            month=TruncMonth('date')
+        ).values('month').annotate(
+            total_knocked=Sum('knocked_doors'),
+            total_open=Sum('open_doors')
+        ).order_by('month')
+
+        months_labels = []
+        monthly_knocked_data = []
+        monthly_open_data = []
+
+        for entry in monthly_visits:
+            if entry['month']:
+                months_labels.append(entry['month'].strftime('%b %Y'))
+                monthly_knocked_data.append(entry['total_knocked'] or 0)
+                monthly_open_data.append(entry['total_open'] or 0)
+
+        context['months_labels'] = months_labels
+        context['monthly_knocked_data'] = monthly_knocked_data
+        context['monthly_open_data'] = monthly_open_data
+
+        # Total stats
+        totals = Visit.objects.aggregate(
+            total_knocked=Sum('knocked_doors'),
+            total_open=Sum('open_doors')
+        )
+        context['total_knocked'] = totals['total_knocked'] or 0
+        context['total_open'] = totals['total_open'] or 0
+        context['total_visits'] = Visit.objects.count()
+
+        # Tractage stats
+        tractage_totals = Tractage.objects.aggregate(
+            total_tractages=Sum('nb_tractage')
+        )
+        context['total_tractages'] = tractage_totals['total_tractages'] or 0
+        context['total_tractage_locations'] = Tractage.objects.count()
+
+        # Tractage by type
+        tractage_by_type = Tractage.objects.values('type_tractage').annotate(
+            total=Sum('nb_tractage')
+        ).order_by('-total')
+
+        type_labels = []
+        type_data = []
+        type_display_map = dict(Tractage.TYPE_CHOICES)
+
+        for entry in tractage_by_type:
+            type_labels.append(type_display_map.get(entry['type_tractage'], entry['type_tractage']))
+            type_data.append(entry['total'] or 0)
+
+        context['tractage_type_labels'] = type_labels
+        context['tractage_type_data'] = type_data
+
+        return context
+
+
+class ExportVotingDesksCSV(LoginRequiredMixin, View):
+    """Export voting desks data to CSV"""
+
+    def get(self, request):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="bureaux_de_vote.csv"'
+        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow(['Code', 'Nom', 'Adresse', 'Priorite', 'Nb Immeubles', 'Nb Electeurs', 'Portes Frappees', 'Portes Ouvertes', 'Couverture %'])
+
+        voting_desks = VotingDesk.objects.annotate(
+            total_electors=Sum('buildings__num_electors'),
+            total_knocked=Sum('buildings__visits__knocked_doors'),
+            total_open=Sum('buildings__visits__open_doors'),
+            building_count=Count('buildings')
+        ).order_by('code')
+
+        for desk in voting_desks:
+            total_electors = desk.total_electors or 0
+            total_knocked = desk.total_knocked or 0
+            coverage = round((total_knocked / total_electors * 100), 1) if total_electors > 0 else 0
+
+            writer.writerow([
+                desk.code,
+                desk.name,
+                desk.location,
+                desk.priority or '',
+                desk.building_count,
+                total_electors,
+                total_knocked,
+                desk.total_open or 0,
+                coverage
+            ])
+
+        return response
+
+
+class ExportBuildingsCSV(LoginRequiredMixin, View):
+    """Export buildings data to CSV"""
+
+    def get(self, request):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="immeubles.csv"'
+        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow(['Bureau', 'Numero', 'Rue', 'Electeurs', 'Portes Frappees', 'Portes Ouvertes', 'Nb Visites', 'Termine', 'Latitude', 'Longitude'])
+
+        buildings = Building.objects.select_related('voting_desk').annotate(
+            total_knocked=Sum('visits__knocked_doors'),
+            total_open=Sum('visits__open_doors'),
+            visit_count=Count('visits')
+        ).order_by('voting_desk__code', 'street_name', 'street_number')
+
+        for bldg in buildings:
+            writer.writerow([
+                bldg.voting_desk.code,
+                bldg.street_number,
+                bldg.street_name,
+                bldg.num_electors,
+                bldg.total_knocked or 0,
+                bldg.total_open or 0,
+                bldg.visit_count,
+                'Oui' if bldg.is_finished else 'Non',
+                bldg.latitude or '',
+                bldg.longitude or ''
+            ])
+
+        return response
+
+
+class ExportTractagesCSV(LoginRequiredMixin, View):
+    """Export tractages data to CSV"""
+
+    def get(self, request):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="tractages.csv"'
+        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow(['Nom', 'Type', 'Adresse', 'Bureau', 'Nb Tractages', 'Latitude', 'Longitude'])
+
+        tractages = Tractage.objects.select_related('voting_desk').order_by('label')
+
+        for t in tractages:
+            writer.writerow([
+                t.label,
+                t.get_type_tractage_display(),
+                t.address,
+                t.voting_desk.code if t.voting_desk else '',
+                t.nb_tractage,
+                t.latitude or '',
+                t.longitude or ''
+            ])
+
+        return response

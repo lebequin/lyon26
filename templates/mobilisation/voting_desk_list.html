@@ -4,6 +4,12 @@
 {% block title %}Bureaux de vote{% endblock %}
 {% block page_title %}Bureaux de vote{% endblock %}
 
+{% block page_actions %}
+<a href="{% url 'mobilisation:export_voting_desks' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>CSV</span>
+</a>
+{% endblock %}
+
 {% block content %}
 <!-- Global Stats -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

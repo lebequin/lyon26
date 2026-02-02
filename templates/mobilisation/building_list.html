@@ -5,8 +5,14 @@
 {% block page_title %}Bureau {{ voting_desk.code }} - {{ voting_desk.location }}{% endblock %}
 
 {% block page_actions %}
+<a href="{% url 'mobilisation:building_create' voting_desk_code=voting_desk.code %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors text-sm sm:text-base">
+    <span>+</span><span class="hidden sm:inline"> Ajouter</span>
+</a>
+<a href="{% url 'mobilisation:export_buildings' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>CSV</span>
+</a>
 <a href="{% url 'mobilisation:voting_desk_list' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
-    <span>&larr;</span><span class="hidden sm:inline"> Retour aux bureaux</span>
+    <span>&larr;</span><span class="hidden sm:inline"> Retour</span>
 </a>
 {% endblock %}
 
