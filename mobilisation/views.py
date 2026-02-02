@@ -208,11 +208,11 @@ class BuildingListView(LoginRequiredMixin, TemplateView):
 
         context['buildings'] = buildings
 
-        # Calculate totals
-        totals = buildings.aggregate(
+        # Calculate totals - use original fields, not annotated ones (PostgreSQL compatibility)
+        totals = Building.objects.filter(voting_desk=voting_desk).aggregate(
             total_electors=Sum('num_electors'),
-            total_knocked=Sum('total_knocked'),
-            total_open=Sum('total_open')
+            total_knocked=Sum('visits__knocked_doors'),
+            total_open=Sum('visits__open_doors')
         )
 
         context['total_electors'] = totals['total_electors'] or 0
