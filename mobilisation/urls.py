@@ -20,6 +20,7 @@ from .views import (
     TractageAPIView,
     ActionsListView,
     StatisticsView,
+    ExportVisitsCSV,
     ExportVotingDesksCSV,
     ExportBuildingsCSV,
     ExportTractagesCSV,
@@ -49,6 +50,7 @@ urlpatterns = [
     path('api/buildings/<int:pk>/', BuildingDetailView.as_view(), name='building_detail'),
     path('api/visit/', AddVisitView.as_view(), name='add_visit'),
     # CSV Exports
+    path('export/visites/', ExportVisitsCSV.as_view(), name='export_visits'),
     path('export/bureaux/', ExportVotingDesksCSV.as_view(), name='export_voting_desks'),
     path('export/immeubles/', ExportBuildingsCSV.as_view(), name='export_buildings'),
     path('export/tractages/', ExportTractagesCSV.as_view(), name='export_tractages'),

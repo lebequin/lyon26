@@ -554,6 +554,12 @@ class StatisticsView(LoginRequiredMixin, TemplateView):
         context['total_open'] = totals['total_open'] or 0
         context['total_visits'] = Visit.objects.count()
 
+        # Calculate open rate
+        if context['total_knocked'] > 0:
+            context['open_rate'] = round((context['total_open'] / context['total_knocked']) * 100, 1)
+        else:
+            context['open_rate'] = 0
+
         # Tractage stats
         tractage_totals = Tractage.objects.aggregate(
             total_tractages=Sum('nb_tractage')
@@ -578,6 +584,33 @@ class StatisticsView(LoginRequiredMixin, TemplateView):
         context['tractage_type_data'] = type_data
 
         return context
+
+
+class ExportVisitsCSV(LoginRequiredMixin, View):
+    """Export visits data to CSV"""
+
+    def get(self, request):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="visites.csv"'
+        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow(['Date', 'Adresse', 'Bureau', 'Portes Ouvertes', 'Portes Frappees', 'Commentaire'])
+
+        visits = Visit.objects.prefetch_related('buildings', 'buildings__voting_desk').order_by('-date', '-created_at')
+
+        for visit in visits:
+            building = visit.buildings.first()
+            writer.writerow([
+                visit.date.strftime('%Y-%m-%d') if visit.date else '',
+                str(building) if building else '',
+                building.voting_desk.code if building and building.voting_desk else '',
+                visit.open_doors,
+                visit.knocked_doors,
+                visit.comment or ''
+            ])
+
+        return response
 
 
 class ExportVotingDesksCSV(LoginRequiredMixin, View):

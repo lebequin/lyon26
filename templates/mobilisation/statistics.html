@@ -36,7 +36,7 @@
     </div>
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Taux d'ouverture</div>
-        <div class="text-2xl font-bold">{% if total_knocked > 0 %}{{ total_open|floatformat:0 }}%{% else %}0%{% endif %}</div>
+        <div class="text-2xl font-bold">{{ open_rate }}%</div>
     </div>
 </div>
 

@@ -1,11 +1,12 @@
 import csv
 import io
+from datetime import datetime
 from django.contrib import admin, messages
 from django.shortcuts import render, redirect
 from django.urls import path
 
 from .models import Visit, Tractage
-from territory.models import VotingDesk
+from territory.models import VotingDesk, Building
 
 
 @admin.register(Visit)
@@ -15,6 +16,7 @@ class VisitAdmin(admin.ModelAdmin):
     filter_horizontal = ('buildings',)
     date_hierarchy = 'date'
     ordering = ('-date', '-created_at')
+    change_list_template = 'admin/mobilisation/visit/change_list.html'
 
     def building_list(self, obj):
         buildings = obj.buildings.all()[:3]
@@ -27,6 +29,86 @@ class VisitAdmin(admin.ModelAdmin):
     def open_rate(self, obj):
         return f"{obj.open_rate}%"
     open_rate.short_description = "Taux d'ouverture"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('import-csv/', self.admin_site.admin_view(self.import_csv), name='mobilisation_visit_import'),
+        ]
+        return custom_urls + urls
+
+    def import_csv(self, request):
+        if request.method == 'POST':
+            csv_file = request.FILES.get('csv_file')
+            if not csv_file:
+                messages.error(request, "Veuillez selectionner un fichier CSV.")
+                return redirect('..')
+
+            try:
+                decoded = csv_file.read().decode('utf-8-sig')
+                reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
+
+                created, skipped = 0, 0
+                for row in reader:
+                    date_str = row.get('Date', '').strip()
+                    address = row.get('Adresse', '').strip()
+                    bureau_code = row.get('Bureau', '').strip()
+
+                    if not address and not bureau_code:
+                        skipped += 1
+                        continue
+
+                    # Parse date
+                    visit_date = None
+                    if date_str:
+                        try:
+                            visit_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            try:
+                                visit_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                            except ValueError:
+                                pass
+
+                    # Find building by address or bureau
+                    building = None
+                    if address:
+                        # Try to parse address (format: "number street_name")
+                        parts = address.split(' ', 1)
+                        if len(parts) == 2:
+                            street_number, street_name = parts
+                            building = Building.objects.filter(
+                                street_number=street_number,
+                                street_name__icontains=street_name.strip()
+                            ).first()
+
+                    if not building and bureau_code:
+                        # Try to find any building in the bureau
+                        building = Building.objects.filter(voting_desk__code=bureau_code).first()
+
+                    # Create visit
+                    visit = Visit.objects.create(
+                        date=visit_date,
+                        open_doors=int(row.get('Portes Ouvertes', 0) or 0),
+                        knocked_doors=int(row.get('Portes Frappees', 0) or 0),
+                        comment=row.get('Commentaire', '').strip()
+                    )
+
+                    if building:
+                        visit.buildings.add(building)
+
+                    created += 1
+
+                messages.success(request, f"Import termine: {created} visites creees, {skipped} ignorees.")
+            except Exception as e:
+                messages.error(request, f"Erreur lors de l'import: {str(e)}")
+
+            return redirect('..')
+
+        return render(request, 'admin/csv_import.html', {
+            'title': 'Importer des visites',
+            'expected_columns': 'Date; Adresse; Bureau; Portes Ouvertes; Portes Frappees; Commentaire',
+            'opts': self.model._meta,
+        })
 
 
 @admin.register(Tractage)
