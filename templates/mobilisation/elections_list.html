@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Elections{% endblock %}
+{% block page_title %}Elections{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'mobilisation:export_elections' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>CSV</span>
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        min-height: 350px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Moy. REG21</div>
+        <div class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ avg_reg21|floatformat:1 }}%</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Moy. EURO24</div>
+        <div class="text-xl font-bold text-purple-600 dark:text-purple-400">{{ avg_euro24|floatformat:1 }}%</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Moy. LEG24</div>
+        <div class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ avg_leg24|floatformat:1 }}%</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Hausse</div>
+        <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ trend_up }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Stable</div>
+        <div class="text-xl font-bold text-yellow-600 dark:text-yellow-400">{{ trend_stable }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Baisse</div>
+        <div class="text-xl font-bold text-red-600 dark:text-red-400">{{ trend_down }}</div>
+    </div>
+</div>
+
+{% if results %}
+<!-- Evolution Chart -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Evolution par bureau de vote</h2>
+    <div class="chart-container">
+        <div id="evolutionChart"></div>
+    </div>
+</div>
+
+<!-- Delta Chart -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Tendance LEG24 vs REG21 (Delta %)</h2>
+    <div class="chart-container">
+        <div id="deltaChart"></div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Results Table -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542]">
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">BV</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase hidden md:table-cell">Quartier</th>
+                    <th class="px-3 py-2 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">REG21</th>
+                    <th class="px-3 py-2 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">EURO24</th>
+                    <th class="px-3 py-2 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">LEG24</th>
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Delta</th>
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Tendance</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for r in results %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+                    <td class="px-3 py-2 font-medium">{{ r.voting_desk.code }}</td>
+                    <td class="px-3 py-2 text-slate-600 dark:text-slate-400 hidden md:table-cell">{{ r.neighborhood|truncatechars:25 }}</td>
+                    <td class="px-3 py-2 text-right text-blue-600 dark:text-blue-400">{{ r.reg21_uge_percent|floatformat:1 }}%</td>
+                    <td class="px-3 py-2 text-right text-purple-600 dark:text-purple-400">{{ r.euro24_nfp_percent|floatformat:1 }}%</td>
+                    <td class="px-3 py-2 text-right text-primary-600 dark:text-primary-400">{{ r.leg24_nfp_percent|floatformat:1 }}%</td>
+                    <td class="px-3 py-2 text-center font-medium {% if r.delta_nfp_percent > 0 %}text-green-600 dark:text-green-400{% elif r.delta_nfp_percent < 0 %}text-red-600 dark:text-red-400{% else %}text-slate-500{% endif %}">
+                        {% if r.delta_nfp_percent > 0 %}+{% endif %}{{ r.delta_nfp_percent|floatformat:2 }}%
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        {% if r.delta_nfp_percent > 2 %}
+                        <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Hausse</span>
+                        {% elif r.delta_nfp_percent < -2 %}
+                        <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">Baisse</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">Stable</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        Aucune donnee electorale. Importez les donnees via l'administration.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if results %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+    const commonOptions = {
+        chart: {
+            background: 'transparent',
+            toolbar: { show: false },
+            fontFamily: 'Inter, sans-serif'
+        },
+        theme: { mode: isDark ? 'dark' : 'light' },
+        grid: { borderColor: gridColor, strokeDashArray: 4 },
+        tooltip: { theme: isDark ? 'dark' : 'light' }
+    };
+
+    // Evolution Chart
+    const evolutionOptions = {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'line', height: 350 },
+        series: [
+            { name: 'REG21 (UGE)', data: {{ reg21_data|safe }} },
+            { name: 'EURO24 (NFP)', data: {{ euro24_data|safe }} },
+            { name: 'LEG24 (NFP)', data: {{ leg24_data|safe }} }
+        ],
+        colors: ['#3b82f6', '#8b5cf6', '#6366f1'],
+        stroke: { curve: 'smooth', width: 2 },
+        markers: { size: 4, hover: { size: 6 } },
+        xaxis: {
+            categories: {{ bv_codes|safe }},
+            labels: { style: { colors: textColor }, rotate: -45 },
+            axisBorder: { color: gridColor },
+            axisTicks: { color: gridColor }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: textColor },
+                formatter: function(val) { return val.toFixed(0) + '%'; }
+            },
+            min: 0,
+            max: 60
+        },
+        legend: { position: 'top', labels: { colors: textColor } }
+    };
+
+    new ApexCharts(document.querySelector("#evolutionChart"), evolutionOptions).render();
+
+    // Delta Chart
+    const deltaData = {{ delta_data|safe }};
+    const deltaColors = deltaData.map(v => v > 2 ? '#22c55e' : v < -2 ? '#ef4444' : '#eab308');
+
+    const deltaOptions = {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'bar', height: 350 },
+        series: [{ name: 'Delta %', data: deltaData }],
+        colors: deltaColors,
+        plotOptions: {
+            bar: {
+                borderRadius: 4,
+                columnWidth: '70%',
+                distributed: true,
+                colors: {
+                    ranges: [
+                        { from: -100, to: -2, color: '#ef4444' },
+                        { from: -2, to: 2, color: '#eab308' },
+                        { from: 2, to: 100, color: '#22c55e' }
+                    ]
+                }
+            }
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+            categories: {{ bv_codes|safe }},
+            labels: { style: { colors: textColor }, rotate: -45 },
+            axisBorder: { color: gridColor },
+            axisTicks: { color: gridColor }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: textColor },
+                formatter: function(val) { return val.toFixed(1) + '%'; }
+            }
+        },
+        legend: { show: false }
+    };
+
+    new ApexCharts(document.querySelector("#deltaChart"), deltaOptions).render();
+</script>
+{% endif %}
+{% endblock %}

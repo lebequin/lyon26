@@ -19,7 +19,9 @@ from .views import (
     TractageIncrementView,
     TractageAPIView,
     ActionsListView,
+    ElectionsListView,
     StatisticsView,
+    ExportElectionsCSV,
     ExportVisitsCSV,
     ExportVotingDesksCSV,
     ExportBuildingsCSV,
@@ -31,6 +33,7 @@ app_name = 'mobilisation'
 urlpatterns = [
     path('', DashboardView.as_view(), name='dashboard'),
     path('actions/', ActionsListView.as_view(), name='actions_list'),
+    path('elections/', ElectionsListView.as_view(), name='elections_list'),
     path('statistiques/', StatisticsView.as_view(), name='statistics'),
     path('bureaux/', VotingDeskListView.as_view(), name='voting_desk_list'),
     path('bureaux/<str:voting_desk_code>/', BuildingListView.as_view(), name='building_list'),
@@ -50,6 +53,7 @@ urlpatterns = [
     path('api/buildings/<int:pk>/', BuildingDetailView.as_view(), name='building_detail'),
     path('api/visit/', AddVisitView.as_view(), name='add_visit'),
     # CSV Exports
+    path('export/elections/', ExportElectionsCSV.as_view(), name='export_elections'),
     path('export/visites/', ExportVisitsCSV.as_view(), name='export_visits'),
     path('export/bureaux/', ExportVotingDesksCSV.as_view(), name='export_voting_desks'),
     path('export/immeubles/', ExportBuildingsCSV.as_view(), name='export_buildings'),

@@ -10,7 +10,7 @@ from django.urls import reverse
 from datetime import datetime, timedelta
 
 from territory.models import Building, VotingDesk
-from .models import Visit, Tractage
+from .models import Visit, Tractage, ElectionResult
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -468,6 +468,49 @@ class TractageAPIView(LoginRequiredMixin, View):
         return JsonResponse({'tractages': data})
 
 
+class ElectionsListView(LoginRequiredMixin, TemplateView):
+    """Election results by voting desk with trends"""
+    template_name = 'mobilisation/elections_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        results = ElectionResult.objects.select_related('voting_desk').all()
+        context['results'] = results
+
+        # Calculate averages for charts
+        if results.exists():
+            context['avg_reg21'] = sum(r.reg21_uge_percent for r in results) / len(results)
+            context['avg_euro24'] = sum(r.euro24_nfp_percent for r in results) / len(results)
+            context['avg_leg24'] = sum(r.leg24_nfp_percent for r in results) / len(results)
+
+            # Data for charts
+            context['bv_codes'] = [r.voting_desk.code for r in results]
+            context['reg21_data'] = [r.reg21_uge_percent for r in results]
+            context['euro24_data'] = [r.euro24_nfp_percent for r in results]
+            context['leg24_data'] = [r.leg24_nfp_percent for r in results]
+            context['delta_data'] = [r.delta_nfp_percent for r in results]
+
+            # Count trends
+            context['trend_up'] = sum(1 for r in results if r.delta_nfp_percent > 2)
+            context['trend_down'] = sum(1 for r in results if r.delta_nfp_percent < -2)
+            context['trend_stable'] = len(results) - context['trend_up'] - context['trend_down']
+        else:
+            context['avg_reg21'] = 0
+            context['avg_euro24'] = 0
+            context['avg_leg24'] = 0
+            context['bv_codes'] = []
+            context['reg21_data'] = []
+            context['euro24_data'] = []
+            context['leg24_data'] = []
+            context['delta_data'] = []
+            context['trend_up'] = 0
+            context['trend_down'] = 0
+            context['trend_stable'] = 0
+
+        return context
+
+
 class ActionsListView(LoginRequiredMixin, TemplateView):
     """List of all visits ordered by date descending"""
     template_name = 'mobilisation/actions_list.html'
@@ -584,6 +627,39 @@ class StatisticsView(LoginRequiredMixin, TemplateView):
         context['tractage_type_data'] = type_data
 
         return context
+
+
+class ExportElectionsCSV(LoginRequiredMixin, View):
+    """Export election results to CSV"""
+
+    def get(self, request):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="elections.csv"'
+        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow([
+            'BV', 'Lieu', 'Quartier',
+            'REG21 Exprimes', 'REG21 Voix UGE', 'REG21 % UGE', 'REG21 Abst %',
+            'EURO24 Exprimes', 'EURO24 Voix NFP', 'EURO24 % NFP', 'EURO24 Abst %',
+            'LEG24 Exprimes', 'LEG24 Voix NFP', 'LEG24 % NFP', 'LEG24 Abst %',
+            'Delta % NFP'
+        ])
+
+        results = ElectionResult.objects.select_related('voting_desk').order_by('voting_desk__code')
+
+        for r in results:
+            writer.writerow([
+                r.voting_desk.code,
+                r.location,
+                r.neighborhood,
+                r.reg21_expressed, r.reg21_uge_votes, r.reg21_uge_percent, r.reg21_abstention,
+                r.euro24_expressed, r.euro24_nfp_votes, r.euro24_nfp_percent, r.euro24_abstention,
+                r.leg24_expressed, r.leg24_nfp_votes, r.leg24_nfp_percent, r.leg24_abstention,
+                r.delta_nfp_percent
+            ])
+
+        return response
 
 
 class ExportVisitsCSV(LoginRequiredMixin, View):

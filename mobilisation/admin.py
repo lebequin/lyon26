@@ -5,7 +5,7 @@ from django.contrib import admin, messages
 from django.shortcuts import render, redirect
 from django.urls import path
 
-from .models import Visit, Tractage
+from .models import Visit, Tractage, ElectionResult
 from territory.models import VotingDesk, Building
 
 
@@ -189,5 +189,122 @@ class TractageAdmin(admin.ModelAdmin):
         return render(request, 'admin/csv_import.html', {
             'title': 'Importer des lieux de tractage',
             'expected_columns': 'Nom; Type; Adresse; Bureau; Nb Tractages; Latitude; Longitude',
+            'opts': self.model._meta,
+        })
+
+
+@admin.register(ElectionResult)
+class ElectionResultAdmin(admin.ModelAdmin):
+    list_display = ('voting_desk', 'neighborhood', 'reg21_uge_percent', 'euro24_nfp_percent', 'leg24_nfp_percent', 'delta_nfp_percent', 'trend_display')
+    list_filter = ('voting_desk',)
+    search_fields = ('voting_desk__code', 'neighborhood', 'location')
+    ordering = ('voting_desk__code',)
+    change_list_template = 'admin/mobilisation/electionresult/change_list.html'
+
+    def trend_display(self, obj):
+        if obj.delta_nfp_percent > 2:
+            return 'Hausse'
+        elif obj.delta_nfp_percent < -2:
+            return 'Baisse'
+        return 'Stable'
+    trend_display.short_description = "Tendance"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('import-csv/', self.admin_site.admin_view(self.import_csv), name='mobilisation_electionresult_import'),
+        ]
+        return custom_urls + urls
+
+    def parse_percent(self, value):
+        """Parse percentage string like '28,35%' to float"""
+        if not value:
+            return 0.0
+        value = value.strip().replace('%', '').replace(',', '.').replace(' ', '')
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+
+    def parse_int(self, value):
+        """Parse integer string"""
+        if not value:
+            return 0
+        value = value.strip().replace(' ', '')
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+
+    def import_csv(self, request):
+        if request.method == 'POST':
+            csv_file = request.FILES.get('csv_file')
+            if not csv_file:
+                messages.error(request, "Veuillez selectionner un fichier CSV.")
+                return redirect('..')
+
+            try:
+                decoded = csv_file.read().decode('utf-8-sig')
+                # Handle tab-separated values as well
+                if '\t' in decoded:
+                    delimiter = '\t'
+                else:
+                    delimiter = ';'
+
+                reader = csv.DictReader(io.StringIO(decoded), delimiter=delimiter)
+
+                created, updated, skipped = 0, 0, 0
+                for row in reader:
+                    bv_code = row.get('BV', '').strip()
+                    if not bv_code:
+                        skipped += 1
+                        continue
+
+                    try:
+                        voting_desk = VotingDesk.objects.get(code=bv_code)
+                    except VotingDesk.DoesNotExist:
+                        # Try to create the voting desk
+                        voting_desk = VotingDesk.objects.create(
+                            code=bv_code,
+                            name=row.get('Lieu', bv_code).strip(),
+                            location=row.get('Lieu', '').strip()
+                        )
+
+                    obj, was_created = ElectionResult.objects.update_or_create(
+                        voting_desk=voting_desk,
+                        defaults={
+                            'location': row.get('Lieu', '').strip(),
+                            'neighborhood': row.get('Quartier', '').strip().replace('\n', ' '),
+                            # REG21
+                            'reg21_expressed': self.parse_int(row.get('21REG T2\nExprimés', row.get('21REG T2 Exprimes', ''))),
+                            'reg21_uge_votes': self.parse_int(row.get('21REG T2\nExp UGE', row.get('21REG T2 Exp UGE', ''))),
+                            'reg21_uge_percent': self.parse_percent(row.get('21REG T2\nVoix UGE en %', row.get('21REG T2 Voix UGE en %', ''))),
+                            'reg21_abstention': self.parse_percent(row.get('21REG T2\nAbst %', row.get('21REG T2 Abst %', ''))),
+                            # EURO24
+                            'euro24_expressed': self.parse_int(row.get('24EURO\nExprimés', row.get('24EURO Exprimes', ''))),
+                            'euro24_nfp_votes': self.parse_int(row.get('24EURO\nExp NFP ', row.get('24EURO Exp NFP', ''))),
+                            'euro24_nfp_percent': self.parse_percent(row.get('24EURO\nVoix NFP en %', row.get('24EURO Voix NFP en %', ''))),
+                            'euro24_abstention': self.parse_percent(row.get('24EURO\nAbst %', row.get('24EURO Abst %', ''))),
+                            # LEG24
+                            'leg24_expressed': self.parse_int(row.get('24LEG T2\nExprimés', row.get('24LEG T2 Exprimes', ''))),
+                            'leg24_nfp_votes': self.parse_int(row.get('24LEG T2\nExp NFP ', row.get('24LEG T2 Exp NFP', ''))),
+                            'leg24_nfp_percent': self.parse_percent(row.get('24 LEG T2\nVoix NFP en %', row.get('24LEG T2 Voix NFP en %', row.get('24 LEG T2 Voix NFP en %', '')))),
+                            'leg24_abstention': self.parse_percent(row.get('24LEG T2\nAbst %', row.get('24LEG T2 Abst %', ''))),
+                        }
+                    )
+                    if was_created:
+                        created += 1
+                    else:
+                        updated += 1
+
+                messages.success(request, f"Import termine: {created} crees, {updated} mis a jour, {skipped} ignores.")
+            except Exception as e:
+                messages.error(request, f"Erreur lors de l'import: {str(e)}")
+
+            return redirect('..')
+
+        return render(request, 'admin/csv_import.html', {
+            'title': 'Importer des resultats electoraux',
+            'expected_columns': 'BV; Lieu; Quartier; 21REG T2 Exprimes; ... (format Excel copie-colle)',
             'opts': self.model._meta,
         })
