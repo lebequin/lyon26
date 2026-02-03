@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect
 from django.urls import path
 
 from .models import Visit, Tractage, ElectionResult
-from territory.models import VotingDesk, Building
+from territory.models import VotingDesk, Building, District
 
 
 @admin.register(Visit)
@@ -254,6 +254,7 @@ class ElectionResultAdmin(admin.ModelAdmin):
                 reader = csv.DictReader(io.StringIO(decoded), delimiter=delimiter)
 
                 created, updated, skipped = 0, 0, 0
+                missing_desks = []
                 for row in reader:
                     bv_code = row.get('BV', '').strip()
                     if not bv_code:
@@ -263,12 +264,27 @@ class ElectionResultAdmin(admin.ModelAdmin):
                     try:
                         voting_desk = VotingDesk.objects.get(code=bv_code)
                     except VotingDesk.DoesNotExist:
-                        # Try to create the voting desk
-                        voting_desk = VotingDesk.objects.create(
-                            code=bv_code,
-                            name=row.get('Lieu', bv_code).strip(),
-                            location=row.get('Lieu', '').strip()
-                        )
+                        # Try to find a matching district based on code prefix (e.g., 501 -> district 5)
+                        district_code = bv_code[0] if len(bv_code) >= 1 else None
+                        district = None
+                        if district_code:
+                            district = District.objects.filter(code=district_code).first()
+                            if not district:
+                                district = District.objects.filter(code=f"0{district_code}").first()
+
+                        if district:
+                            # Create voting desk with found district
+                            voting_desk = VotingDesk.objects.create(
+                                code=bv_code,
+                                name=row.get('Lieu', bv_code).strip() or bv_code,
+                                location=row.get('Lieu', '').strip(),
+                                district=district
+                            )
+                        else:
+                            # Skip if no matching district found
+                            missing_desks.append(bv_code)
+                            skipped += 1
+                            continue
 
                     obj, was_created = ElectionResult.objects.update_or_create(
                         voting_desk=voting_desk,
@@ -297,7 +313,10 @@ class ElectionResultAdmin(admin.ModelAdmin):
                     else:
                         updated += 1
 
-                messages.success(request, f"Import termine: {created} crees, {updated} mis a jour, {skipped} ignores.")
+                msg = f"Import termine: {created} crees, {updated} mis a jour, {skipped} ignores."
+                if missing_desks:
+                    msg += f" Bureaux manquants: {', '.join(missing_desks)}"
+                messages.success(request, msg)
             except Exception as e:
                 messages.error(request, f"Erreur lors de l'import: {str(e)}")
 
