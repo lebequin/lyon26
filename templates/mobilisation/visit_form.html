@@ -1,23 +1,35 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{% if is_edit %}Modifier la visite{% else %}Nouvelle visite{% endif %} - {{ building }}{% endblock %}
+{% block title %}{% if is_edit %}Modifier la visite{% else %}Nouvelle visite{% endif %}{% if building %} - {{ building }}{% endif %}{% endblock %}
 {% block page_title %}{% if is_edit %}Modifier la visite{% else %}Nouvelle visite{% endif %}{% endblock %}
 
 {% block page_actions %}
+{% if next %}
+<a href="{{ next }}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>&larr;</span><span class="hidden sm:inline"> Annuler</span>
+</a>
+{% elif building %}
 <a href="{% url 'mobilisation:building_visits' pk=building.pk %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
     <span>&larr;</span><span class="hidden sm:inline"> Annuler</span>
 </a>
+{% else %}
+<a href="{% url 'mobilisation:actions_list' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>&larr;</span><span class="hidden sm:inline"> Annuler</span>
+</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
+    {% if building %}
     <!-- Building Info -->
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-6">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Immeuble</div>
         <div class="text-xl font-bold">{{ building }}</div>
         <div class="text-sm text-slate-500 dark:text-slate-400">Bureau {{ building.voting_desk.code }} | {{ building.num_electors }} electeurs</div>
     </div>
+    {% endif %}
 
     <!-- Visit Form -->
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -27,6 +39,9 @@
 
         <form method="post" class="p-6 space-y-6">
             {% csrf_token %}
+            {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -57,12 +72,14 @@
                           placeholder="Notes sur la visite...">{{ visit.comment|default:"" }}</textarea>
             </div>
 
+            {% if building %}
             <div class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-[#252542] rounded-lg">
                 <input type="checkbox" name="is_finished" id="is_finished"
                        class="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500"
                        {% if building.is_finished %}checked{% endif %}>
                 <label for="is_finished" class="text-sm">Marquer l'immeuble comme termine</label>
             </div>
+            {% endif %}
 
             <div class="flex gap-3">
                 <button type="submit" class="flex-1 p-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-primary-500/30">
