@@ -322,10 +322,12 @@ class VisitEditView(LoginRequiredMixin, View):
     def get(self, request, pk):
         visit = get_object_or_404(Visit, pk=pk)
         building = visit.buildings.first()
+        next_url = request.GET.get('next', '')
         return render(request, 'mobilisation/visit_form.html', {
             'building': building,
             'visit': visit,
-            'is_edit': True
+            'is_edit': True,
+            'next': next_url,
         })
 
     def post(self, request, pk):
@@ -334,7 +336,9 @@ class VisitEditView(LoginRequiredMixin, View):
 
         visit.open_doors = int(request.POST.get('open_doors', 0))
         visit.knocked_doors = int(request.POST.get('knocked_doors', 0))
-        visit.date = request.POST.get('date')
+        date_str = request.POST.get('date')
+        if date_str:
+            visit.date = datetime.strptime(date_str, '%Y-%m-%d').date()
         visit.comment = request.POST.get('comment', '')
         visit.save()
 
@@ -343,7 +347,12 @@ class VisitEditView(LoginRequiredMixin, View):
             building.is_finished = is_finished
             building.save(update_fields=['is_finished'])
 
-        return redirect('mobilisation:building_visits', pk=building.pk if building else 1)
+        next_url = request.POST.get('next', '')
+        if next_url:
+            return redirect(next_url)
+        if building:
+            return redirect('mobilisation:building_visits', pk=building.pk)
+        return redirect('mobilisation:actions_list')
 
 
 class VisitDeleteView(LoginRequiredMixin, View):
@@ -518,7 +527,14 @@ class ActionsListView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        query = self.request.GET.get('q', '').strip()
         visits = Visit.objects.prefetch_related('buildings', 'buildings__voting_desk').order_by('-date', '-created_at')
+
+        if query:
+            visits = visits.filter(
+                Q(buildings__street_name__icontains=query) |
+                Q(buildings__street_number__icontains=query)
+            ).distinct()
 
         # Add building info to each visit
         visits_with_info = []
@@ -532,7 +548,8 @@ class ActionsListView(LoginRequiredMixin, TemplateView):
             })
 
         context['visits'] = visits_with_info
-        context['total_visits'] = visits.count()
+        context['total_visits'] = len(visits_with_info)
+        context['query'] = query
 
         return context
 

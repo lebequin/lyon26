@@ -11,6 +11,34 @@
 {% endblock %}
 
 {% block content %}
+<!-- Search Filter -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4">
+    <form method="get" class="flex gap-3 items-center">
+        <div class="flex-1 relative">
+            <input type="text" name="q" value="{{ query }}"
+                   placeholder="Rechercher une adresse..."
+                   class="w-full p-3 pl-10 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                   autocomplete="off">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+        </div>
+        <button type="submit" class="px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
+            Filtrer
+        </button>
+        {% if query %}
+        <a href="{% url 'mobilisation:actions_list' %}" class="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+            Effacer
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Results count -->
+<div class="mb-4 text-sm text-slate-500 dark:text-slate-400">
+    {{ total_visits }} visite{{ total_visits|pluralize }}{% if query %} pour "{{ query }}"{% endif %}
+</div>
+
 <!-- Visits Table -->
 <div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
     <div class="overflow-x-auto">
@@ -56,7 +84,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center gap-2">
-                            <a href="{% url 'mobilisation:visit_edit' pk=item.visit.pk %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                            <a href="{% url 'mobilisation:visit_edit' pk=item.visit.pk %}?next={% if query %}{% url 'mobilisation:actions_list' %}%3Fq%3D{{ query|urlencode }}{% else %}{% url 'mobilisation:actions_list' %}{% endif %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                                 Modifier
                             </a>
                             <form method="post" action="{% url 'mobilisation:visit_delete' pk=item.visit.pk %}" onsubmit="return confirm('Supprimer cette visite ?');">
@@ -71,7 +99,11 @@
                 {% empty %}
                 <tr>
                     <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {% if query %}
+                        Aucune visite trouvee pour "{{ query }}".
+                        {% else %}
                         Aucune visite enregistree.
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
