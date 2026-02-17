@@ -154,7 +154,7 @@ class BuildingSearchView(LoginRequiredMixin, View):
             total_open=Sum('visits__open_doors'),
             total_knocked=Sum('visits__knocked_doors'),
             visit_count=Count('visits')
-        ).order_by('street_name', 'street_number')
+        ).order_by('-num_electors', 'street_name', 'street_number')
 
         # Calculate open rate for each building
         for bldg in buildings:
