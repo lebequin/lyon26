@@ -803,3 +803,43 @@ class ExportTractagesCSV(LoginRequiredMixin, View):
             ])
 
         return response
+
+
+class VotingDeskBoundariesAPIView(LoginRequiredMixin, View):
+    """GeoJSON API endpoint for voting desk boundaries with election data"""
+
+    def get(self, request):
+        import json
+        from django.conf import settings
+        import os
+
+        # Load the GeoJSON file
+        geojson_path = os.path.join(settings.BASE_DIR, 'static', 'data', 'bureaux_vote_lyon5.geojson')
+
+        try:
+            with open(geojson_path, 'r') as f:
+                geojson_data = json.load(f)
+        except FileNotFoundError:
+            return JsonResponse({'error': 'GeoJSON file not found'}, status=404)
+
+        # Get election results indexed by voting desk code
+        election_results = {}
+        for result in ElectionResult.objects.select_related('voting_desk').all():
+            code = result.voting_desk.code
+            election_results[code] = {
+                'leg24_nfp_percent': result.leg24_nfp_percent,
+                'euro24_nfp_percent': result.euro24_nfp_percent,
+                'reg21_uge_percent': result.reg21_uge_percent,
+                'delta_nfp_percent': result.delta_nfp_percent,
+                'neighborhood': result.neighborhood,
+            }
+
+        # Merge election data into GeoJSON features
+        for feature in geojson_data['features']:
+            numero = str(feature['properties'].get('numero', ''))
+            if numero in election_results:
+                feature['properties']['election'] = election_results[numero]
+            else:
+                feature['properties']['election'] = None
+
+        return JsonResponse(geojson_data)
