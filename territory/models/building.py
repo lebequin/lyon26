@@ -21,6 +21,8 @@ class Building(models.Model):
     longitude = models.FloatField(null=True, blank=True, verbose_name="Longitude")
     # Mobilisation tracking
     is_finished = models.BooleanField(default=False, verbose_name="Terminé")
+    # Social housing flag (HLM - from RPLS data)
+    is_hlm = models.BooleanField(default=False, verbose_name="Logement social (HLM)")
 
     class Meta:
         verbose_name = "Immeuble"
