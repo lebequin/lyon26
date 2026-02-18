@@ -39,10 +39,11 @@
                 <tr class="bg-slate-50 dark:bg-[#252542]">
                     <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priorité</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bureau</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nom</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Localisation</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Électeurs</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappées</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ouvertes</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappées</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Couverture</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
                 </tr>
@@ -65,10 +66,11 @@
                             {{ desk.code }}
                         </a>
                     </td>
+                    <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ desk.name|default:"-" }}</td>
                     <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ desk.location|default:"-" }}</td>
                     <td class="px-4 py-3 text-right">{{ desk.total_electors|default:0 }}</td>
-                    <td class="px-4 py-3 text-right">{{ desk.total_knocked|default:0 }}</td>
                     <td class="px-4 py-3 text-right">{{ desk.total_open|default:0 }}</td>
+                    <td class="px-4 py-3 text-right">{{ desk.total_knocked|default:0 }}</td>
                     <td class="px-4 py-3">
                         <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div class="h-full rounded-full transition-all duration-300 {% if desk.coverage >= 50 %}bg-green-500{% elif desk.coverage >= 20 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
