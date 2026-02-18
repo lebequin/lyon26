@@ -28,12 +28,12 @@
         <div class="text-xl font-bold">{{ total_electors }}</div>
     </div>
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
-        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Frappées</div>
-        <div class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
-    </div>
-    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Ouvertes</div>
         <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ total_open }}</div>
+    </div>
+     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Frappées</div>
+        <div class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
     </div>
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Couverture</div>
@@ -49,8 +49,8 @@
                 <tr class="bg-slate-50 dark:bg-[#252542]">
                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Adresse</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Électeurs</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappées</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ouvertes</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappées</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visites</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action</th>
@@ -65,8 +65,8 @@
                         </a>
                     </td>
                     <td class="px-4 py-3 text-right">{{ building.num_electors }}</td>
-                    <td class="px-4 py-3 text-right">{{ building.total_knocked|default:0 }}</td>
                     <td class="px-4 py-3 text-right">{{ building.total_open|default:0 }}</td>
+                    <td class="px-4 py-3 text-right">{{ building.total_knocked|default:0 }}</td>
                     <td class="px-4 py-3 text-center">{{ building.visit_count|default:0 }}</td>
                     <td class="px-4 py-3 text-center">
                         {% if building.is_finished %}

@@ -18,12 +18,12 @@
         <div class="text-2xl font-bold">{{ total_electors|default:0 }}</div>
     </div>
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
-        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappées</div>
-        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked|default:0 }}</div>
-    </div>
-    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes ouvertes</div>
         <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ total_open|default:0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappées</div>
+        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked|default:0 }}</div>
     </div>
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-5 border border-slate-200 dark:border-slate-700">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Couverture globale</div>

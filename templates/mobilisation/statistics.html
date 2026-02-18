@@ -23,12 +23,12 @@
 <!-- Summary Cards -->
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
-        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappees</div>
-        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
-    </div>
-    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes ouvertes</div>
         <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ total_open }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Portes frappees</div>
+        <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ total_knocked }}</div>
     </div>
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
         <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Tractages</div>
@@ -136,12 +136,13 @@
             type: 'line',
             height: 300
         },
-        series: [{
-            name: 'Portes frappees',
-            data: {{ weekly_knocked_data|safe }}
-        }, {
+        series: [ {
             name: 'Portes ouvertes',
             data: {{ weekly_open_data|safe }}
+        },
+        {
+            name: 'Portes frappees',
+            data: {{ weekly_knocked_data|safe }}
         }],
         colors: ['#6366f1', '#22c55e'],
         stroke: {
@@ -179,12 +180,13 @@
             height: 300
         },
         series: [{
-            name: 'Portes frappees',
-            data: {{ weekly_knocked_data|safe }}
-        }, {
             name: 'Portes ouvertes',
             data: {{ weekly_open_data|safe }}
-        }],
+        },
+        {
+            name: 'Portes frappees',
+            data: {{ weekly_knocked_data|safe }}
+        } ],
         colors: ['#6366f1', '#22c55e'],
         fill: {
             type: 'gradient',
@@ -231,11 +233,11 @@
             stacked: false
         },
         series: [{
-            name: 'Portes frappees',
-            data: {{ monthly_knocked_data|safe }}
-        }, {
             name: 'Portes ouvertes',
             data: {{ monthly_open_data|safe }}
+        },{
+            name: 'Portes frappees',
+            data: {{ monthly_knocked_data|safe }}
         }],
         colors: ['#6366f1', '#22c55e'],
         plotOptions: {
