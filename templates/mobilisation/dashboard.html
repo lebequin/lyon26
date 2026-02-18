@@ -40,6 +40,77 @@
         cursor: pointer;
         border: none;
     }
+
+    .map-legend {
+        position: absolute;
+        bottom: 20px;
+        left: 10px;
+        background: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 12px;
+    }
+
+    .dark .map-legend {
+        background: #1e1e35;
+        color: #e2e8f0;
+    }
+
+    .legend-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .legend-color {
+        width: 20px;
+        height: 14px;
+        border-radius: 2px;
+    }
+
+    .map-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .map-control-btn {
+        background: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .dark .map-control-btn {
+        background: #1e1e35;
+        color: #e2e8f0;
+    }
+
+    .map-control-btn:hover {
+        background: #f1f5f9;
+    }
+
+    .dark .map-control-btn:hover {
+        background: #252542;
+    }
 </style>
 {% endblock %}
 
@@ -48,6 +119,42 @@
     <!-- Map Panel -->
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative isolate z-0">
         <div id="map"></div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <button id="toggle-boundaries" class="map-control-btn">
+                <span>🗺️</span> Masquer zones
+            </button>
+        </div>
+
+        <!-- Legend -->
+        <div class="map-legend" id="map-legend">
+            <div class="legend-title">% NFP (LEG24)</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #047857;"></div>
+                <span>≥ 50%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #22c55e;"></div>
+                <span>45-50%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fef08a;"></div>
+                <span>40-45%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #facc15;"></div>
+                <span>35-40%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #93c5fd;"></div>
+                <span>30-35%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3b82f6;"></div>
+                <span>< 30%</span>
+            </div>
+        </div>
     </div>
 
     <!-- Form Panel -->
@@ -214,6 +321,111 @@
     }
 
     loadTractages();
+
+    // Load voting desk boundaries
+    let boundariesLayer = null;
+
+    async function loadVotingDeskBoundaries() {
+        try {
+            const response = await fetch('{% url "mobilisation:voting_desk_boundaries_api" %}');
+            const geojson = await response.json();
+
+            if (geojson.error) {
+                console.error('Error loading boundaries:', geojson.error);
+                return;
+            }
+
+            // Color scale based on NFP percentage (leg24)
+            // Matches priority colors: dark green > green > light yellow > dark yellow > blue
+            function getColor(percent) {
+                if (percent >= 50) return '#047857'; // emerald-700 - excellent
+                if (percent >= 45) return '#22c55e'; // green-500
+                if (percent >= 40) return '#fef08a'; // yellow-200 - light yellow
+                if (percent >= 35) return '#facc15'; // yellow-400 - dark yellow
+                if (percent >= 30) return '#93c5fd'; // blue-300
+                return '#3b82f6'; // blue-500 - low NFP
+            }
+
+            function style(feature) {
+                const election = feature.properties.election;
+                const nfpPercent = election ? election.leg24_nfp_percent : 0;
+                return {
+                    fillColor: getColor(nfpPercent),
+                    weight: 2,
+                    opacity: 1,
+                    color: 'white',
+                    fillOpacity: 0.5
+                };
+            }
+
+            function onEachFeature(feature, layer) {
+                const props = feature.properties;
+                const election = props.election;
+
+                let popupContent = `
+                    <div>
+                        <div class="popup-title">Bureau ${props.numero}</div>
+                        <div class="popup-stats">
+                            ${props.nom}<br>
+                            ${election ? `
+                                <strong>Quartier:</strong> ${election.neighborhood || 'N/A'}<br>
+                                <strong>LEG24 NFP:</strong> ${election.leg24_nfp_percent.toFixed(1)}%<br>
+                                <strong>EURO24 NFP:</strong> ${election.euro24_nfp_percent.toFixed(1)}%<br>
+                                <strong>REG21 UGE:</strong> ${election.reg21_uge_percent.toFixed(1)}%<br>
+                                <strong>Delta:</strong> ${election.delta_nfp_percent > 0 ? '+' : ''}${election.delta_nfp_percent.toFixed(1)}%
+                            ` : 'Pas de données électorales'}
+                        </div>
+                    </div>
+                `;
+
+                layer.bindPopup(popupContent);
+
+                layer.on({
+                    mouseover: function(e) {
+                        const layer = e.target;
+                        layer.setStyle({
+                            weight: 3,
+                            fillOpacity: 0.7
+                        });
+                    },
+                    mouseout: function(e) {
+                        boundariesLayer.resetStyle(e.target);
+                    }
+                });
+            }
+
+            boundariesLayer = L.geoJSON(geojson, {
+                style: style,
+                onEachFeature: onEachFeature
+            }).addTo(map);
+
+            // Send boundaries to back so markers are on top
+            boundariesLayer.bringToBack();
+
+        } catch (error) {
+            console.error('Error loading voting desk boundaries:', error);
+        }
+    }
+
+    loadVotingDeskBoundaries();
+
+    // Toggle boundaries visibility
+    const toggleBtn = document.getElementById('toggle-boundaries');
+    const legend = document.getElementById('map-legend');
+    let boundariesVisible = true;
+
+    toggleBtn.addEventListener('click', function() {
+        if (boundariesVisible) {
+            if (boundariesLayer) map.removeLayer(boundariesLayer);
+            legend.style.display = 'none';
+            toggleBtn.innerHTML = '<span>🗺️</span> Afficher zones';
+        } else {
+            if (boundariesLayer) boundariesLayer.addTo(map);
+            legend.style.display = 'block';
+            toggleBtn.innerHTML = '<span>🗺️</span> Masquer zones';
+        }
+        boundariesVisible = !boundariesVisible;
+    });
 
     // Show/hide search results
     document.body.addEventListener('htmx:afterSwap', function(e) {
