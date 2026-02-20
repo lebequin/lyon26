@@ -564,6 +564,7 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
 
         # Get filter parameters
         priority = self.request.GET.get('priority', '')
+        voting_desk_code = self.request.GET.get('bureau', '')
         is_hlm = self.request.GET.get('hlm', '')
         is_finished = self.request.GET.get('finished', '')
         query = self.request.GET.get('q', '').strip()
@@ -576,6 +577,9 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         )
 
         # Apply filters
+        if voting_desk_code:
+            buildings = buildings.filter(voting_desk__code=voting_desk_code)
+
         if priority:
             buildings = buildings.filter(voting_desk__priority=int(priority))
 
@@ -614,8 +618,12 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
             priority__isnull=True
         ).values_list('priority', flat=True).distinct().order_by('priority')
 
+        # Get all voting desks for filter
+        context['voting_desks'] = VotingDesk.objects.all().order_by('code')
+
         # Current filters for template
         context['current_priority'] = priority
+        context['current_bureau'] = voting_desk_code
         context['current_hlm'] = is_hlm
         context['current_finished'] = is_finished
         context['query'] = query

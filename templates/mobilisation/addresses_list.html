@@ -21,6 +21,17 @@
                    class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
         </div>
 
+        <!-- Voting desk filter -->
+        <div class="w-32">
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Bureau</label>
+            <select name="bureau" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
+                <option value="">Tous</option>
+                {% for vd in voting_desks %}
+                <option value="{{ vd.code }}" {% if current_bureau == vd.code %}selected{% endif %}>{{ vd.code }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <!-- Priority filter -->
         <div class="w-32">
             <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Priorite</label>
@@ -56,7 +67,7 @@
             Filtrer
         </button>
 
-        {% if query or current_priority or current_hlm or current_finished %}
+        {% if query or current_bureau or current_priority or current_hlm or current_finished %}
         <a href="{% url 'mobilisation:addresses_list' %}" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
             Reinitialiser
         </a>
