@@ -109,13 +109,13 @@ class VotingDeskAdmin(admin.ModelAdmin):
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
     list_display = (
-        '__str__', 'voting_desk', 'num_electors', 'is_finished',
+        '__str__', 'voting_desk', 'num_electors', 'is_hlm', 'is_finished',
         'visit_count', 'total_knocked', 'total_open'
     )
-    list_filter = ('is_finished', 'voting_desk__district', 'voting_desk')
+    list_filter = ('is_hlm', 'is_finished', 'voting_desk__district', 'voting_desk')
     search_fields = ('street_name', 'street_number')
     ordering = ('street_name', 'street_number')
-    list_editable = ('is_finished',)
+    list_editable = ('is_hlm', 'is_finished',)
     change_list_template = 'admin/territory/building/change_list.html'
 
     def visit_count(self, obj):
@@ -173,6 +173,7 @@ class BuildingAdmin(admin.ModelAdmin):
                         street_name=street_name,
                         defaults={
                             'num_electors': int(row.get('Electeurs', 0) or 0),
+                            'is_hlm': row.get('HLM', '').strip().lower() in ('oui', 'true', '1'),
                             'is_finished': row.get('Termine', '').strip().lower() in ('oui', 'true', '1'),
                             'latitude': float(latitude) if latitude else None,
                             'longitude': float(longitude) if longitude else None,
@@ -191,6 +192,6 @@ class BuildingAdmin(admin.ModelAdmin):
 
         return render(request, 'admin/csv_import.html', {
             'title': 'Importer des immeubles',
-            'expected_columns': 'Bureau; Numero; Rue; Electeurs; Termine; Latitude; Longitude',
+            'expected_columns': 'Bureau; Numero; Rue; Electeurs; HLM; Termine; Latitude; Longitude',
             'opts': self.model._meta,
         })
