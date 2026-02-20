@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Adresses{% endblock %}
+{% block page_title %}Ciblage des adresses{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'mobilisation:export_buildings' %}" class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm sm:text-base">
+    <span>CSV</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-6">
+    <form method="get" class="flex flex-wrap gap-4 items-end">
+        <!-- Search -->
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Recherche</label>
+            <input type="text" name="q" value="{{ query }}" placeholder="Adresse..."
+                   class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
+        </div>
+
+        <!-- Priority filter -->
+        <div class="w-32">
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Priorite</label>
+            <select name="priority" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
+                <option value="">Toutes</option>
+                {% for p in priorities %}
+                <option value="{{ p }}" {% if current_priority == p|stringformat:"d" %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- HLM filter -->
+        <div class="w-40">
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Logement social</label>
+            <select name="hlm" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
+                <option value="">Tous</option>
+                <option value="1" {% if current_hlm == "1" %}selected{% endif %}>HLM uniquement</option>
+                <option value="0" {% if current_hlm == "0" %}selected{% endif %}>Non HLM</option>
+            </select>
+        </div>
+
+        <!-- Finished filter -->
+        <div class="w-36">
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Statut</label>
+            <select name="finished" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
+                <option value="">Tous</option>
+                <option value="0" {% if current_finished == "0" %}selected{% endif %}>A faire</option>
+                <option value="1" {% if current_finished == "1" %}selected{% endif %}>Termines</option>
+            </select>
+        </div>
+
+        <button type="submit" class="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+            Filtrer
+        </button>
+
+        {% if query or current_priority or current_hlm or current_finished %}
+        <a href="{% url 'mobilisation:addresses_list' %}" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+            Reinitialiser
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Adresses</div>
+        <div class="text-xl font-bold">{{ total_buildings }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Electeurs</div>
+        <div class="text-xl font-bold">{{ total_electors }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center hidden sm:block">
+        <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Moy. electeurs/adresse</div>
+        <div class="text-xl font-bold">{{ avg_electors|floatformat:0 }}</div>
+    </div>
+</div>
+
+<!-- Addresses Table -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542]">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Adresse</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bureau</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priorite</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">HLM</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Electeurs</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ouvertes</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frappees</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for building in buildings %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors {% if building.is_finished %}opacity-60{% endif %}">
+                    <td class="px-4 py-3">
+                        <a href="{% url 'mobilisation:building_visits' pk=building.pk %}" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">
+                            {{ building.street_number }} {{ building.street_name }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <a href="{% url 'mobilisation:building_list' voting_desk_code=building.voting_desk.code %}" class="text-slate-600 dark:text-slate-400 hover:underline">
+                            {{ building.voting_desk.code }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if building.voting_desk.priority %}
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-3 h-3 rounded-full {% if building.voting_desk.priority == 1 %}bg-emerald-700{% elif building.voting_desk.priority == 2 %}bg-green-500{% elif building.voting_desk.priority == 3 %}bg-yellow-200{% elif building.voting_desk.priority == 4 %}bg-yellow-400{% elif building.voting_desk.priority == 5 %}bg-blue-500{% else %}bg-slate-400{% endif %}"></span>
+                            <span class="text-sm">{{ building.voting_desk.priority }}</span>
+                        </span>
+                        {% else %}
+                        <span class="text-slate-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if building.is_hlm %}
+                        <span class="text-orange-500" title="Logement social">&#x2713;</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right font-medium">{{ building.num_electors }}</td>
+                    <td class="px-4 py-3 text-right">{{ building.total_open }}</td>
+                    <td class="px-4 py-3 text-right">{{ building.total_knocked }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if building.is_finished %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Termine</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">A faire</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <a href="{% url 'mobilisation:dashboard' %}?building={{ building.id }}" class="inline-block px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+                            Visiter
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">Aucune adresse trouvee</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

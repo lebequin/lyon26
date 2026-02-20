@@ -20,6 +20,7 @@ from .views import (
     TractageAPIView,
     VotingDeskBoundariesAPIView,
     ActionsListView,
+    AddressesListView,
     ElectionsListView,
     StatisticsView,
     ExportElectionsCSV,
@@ -33,6 +34,7 @@ app_name = 'mobilisation'
 
 urlpatterns = [
     path('', DashboardView.as_view(), name='dashboard'),
+    path('adresses/', AddressesListView.as_view(), name='addresses_list'),
     path('actions/', ActionsListView.as_view(), name='actions_list'),
     path('elections/', ElectionsListView.as_view(), name='elections_list'),
     path('statistiques/', StatisticsView.as_view(), name='statistics'),

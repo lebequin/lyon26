@@ -555,6 +555,74 @@ class ActionsListView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class AddressesListView(LoginRequiredMixin, TemplateView):
+    """List of all addresses with filters for targeting"""
+    template_name = 'mobilisation/addresses_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get filter parameters
+        priority = self.request.GET.get('priority', '')
+        is_hlm = self.request.GET.get('hlm', '')
+        is_finished = self.request.GET.get('finished', '')
+        query = self.request.GET.get('q', '').strip()
+
+        # Base queryset with annotations
+        buildings = Building.objects.select_related('voting_desk').annotate(
+            total_open=Sum('visits__open_doors'),
+            total_knocked=Sum('visits__knocked_doors'),
+            visit_count=Count('visits')
+        )
+
+        # Apply filters
+        if priority:
+            buildings = buildings.filter(voting_desk__priority=int(priority))
+
+        if is_hlm == '1':
+            buildings = buildings.filter(is_hlm=True)
+        elif is_hlm == '0':
+            buildings = buildings.filter(is_hlm=False)
+
+        if is_finished == '1':
+            buildings = buildings.filter(is_finished=True)
+        elif is_finished == '0':
+            buildings = buildings.filter(is_finished=False)
+
+        if query:
+            buildings = buildings.filter(
+                Q(street_name__icontains=query) |
+                Q(street_number__icontains=query)
+            )
+
+        # Order by num_electors descending
+        buildings = buildings.order_by('-num_electors', 'street_name', 'street_number')
+
+        # Calculate stats
+        for bldg in buildings:
+            bldg.total_open = bldg.total_open or 0
+            bldg.total_knocked = bldg.total_knocked or 0
+            bldg.open_rate = round((bldg.total_open / bldg.total_knocked * 100), 1) if bldg.total_knocked > 0 else 0
+
+        context['buildings'] = buildings
+        context['total_buildings'] = buildings.count()
+        context['total_electors'] = sum(b.num_electors for b in buildings)
+        context['avg_electors'] = round(context['total_electors'] / context['total_buildings'], 1) if context['total_buildings'] > 0 else 0
+
+        # Get available priorities for filter
+        context['priorities'] = VotingDesk.objects.exclude(
+            priority__isnull=True
+        ).values_list('priority', flat=True).distinct().order_by('priority')
+
+        # Current filters for template
+        context['current_priority'] = priority
+        context['current_hlm'] = is_hlm
+        context['current_finished'] = is_finished
+        context['query'] = query
+
+        return context
+
+
 class StatisticsView(LoginRequiredMixin, TemplateView):
     """Statistics dashboard with charts"""
     template_name = 'mobilisation/statistics.html'
