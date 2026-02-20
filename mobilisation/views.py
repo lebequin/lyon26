@@ -241,13 +241,14 @@ class BuildingCreateView(LoginRequiredMixin, View):
     def post(self, request, voting_desk_code):
         voting_desk = get_object_or_404(VotingDesk, code=voting_desk_code)
 
-        building = Building.objects.create(
+        Building.objects.create(
             street_number=request.POST.get('street_number', ''),
             street_name=request.POST.get('street_name', ''),
             num_electors=int(request.POST.get('num_electors', 0)),
             voting_desk=voting_desk,
             latitude=request.POST.get('latitude') or None,
-            longitude=request.POST.get('longitude') or None
+            longitude=request.POST.get('longitude') or None,
+            is_hlm=request.POST.get('is_hlm') == 'on'
         )
 
         return redirect('mobilisation:building_list', voting_desk_code=voting_desk_code)

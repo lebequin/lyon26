@@ -26,6 +26,17 @@ import zipfile
 import urllib.request
 import urllib.error
 import json
+import ssl
+
+# Fix SSL certificate issues on macOS
+try:
+    import certifi
+    SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    # If certifi is not available, create unverified context (less secure but works)
+    SSL_CONTEXT = ssl.create_default_context()
+    SSL_CONTEXT.check_hostname = False
+    SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 # Codes INSEE des arrondissements de Lyon
 LYON_INSEE_CODES = {
@@ -55,7 +66,7 @@ def get_rpls_download_url():
     api_url = f"https://www.data.gouv.fr/api/1/datasets/{DATASET_ID}/"
     print(f"Interrogation de l'API data.gouv.fr...")
     req = urllib.request.Request(api_url, headers={"User-Agent": "python-extract-hlm/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as response:
+    with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as response:
         data = json.loads(response.read().decode("utf-8"))
 
     resources = data.get("resources", [])
@@ -80,7 +91,7 @@ def download_data(url):
     """Télécharge le fichier (CSV ou ZIP) et retourne le contenu CSV en bytes."""
     print(f"Téléchargement: {url}")
     req = urllib.request.Request(url, headers={"User-Agent": "python-extract-hlm/1.0"})
-    with urllib.request.urlopen(req, timeout=300) as response:
+    with urllib.request.urlopen(req, timeout=300, context=SSL_CONTEXT) as response:
         content = response.read()
 
     # Si c'est un ZIP, extrait le CSV
