@@ -115,7 +115,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-[calc(100vh-160px)] min-h-[500px]">
+<div class="grid grid-cols-1 {% if can_add_visit %}lg:grid-cols-[1fr_380px]{% endif %} gap-4 h-[calc(100vh-160px)] min-h-[500px]">
     <!-- Map Panel -->
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative isolate z-0">
         <div id="map"></div>
@@ -158,6 +158,7 @@
     </div>
 
     <!-- Form Panel -->
+    {% if can_add_visit %}
     <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 overflow-y-auto border border-slate-200 dark:border-slate-700 flex flex-col">
         <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
             <span>📝</span> Nouvelle visite
@@ -221,6 +222,7 @@
             </button>
         </form>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 

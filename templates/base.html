@@ -78,6 +78,7 @@
                         <span class="font-medium">Carte</span>
                     </a>
                 </li>
+                {% if not is_militant %}
                 <li>
                     <a href="{% url 'mobilisation:voting_desk_list' %}"
                         class="flex items-center gap-4 p-3 rounded-lg transition-all
@@ -91,6 +92,7 @@
                         <span class="font-medium">Bureaux de vote</span>
                     </a>
                 </li>
+                {% endif %}
                 <li>
                     <a href="{% url 'mobilisation:addresses_list' %}"
                         class="flex items-center gap-4 p-3 rounded-lg transition-all
@@ -104,6 +106,7 @@
                         <span class="font-medium">Adresses</span>
                     </a>
                 </li>
+                {% if not is_militant %}
                 <li>
                     <a href="{% url 'mobilisation:tractage_list' %}"
                         class="flex items-center gap-4 p-3 rounded-lg transition-all
@@ -156,6 +159,7 @@
                         <span class="font-medium">Statistiques</span>
                     </a>
                 </li>
+                {% endif %}
             </ul>
 
             <div class="p-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
