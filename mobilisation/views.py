@@ -365,6 +365,12 @@ class VisitDeleteView(LoginRequiredMixin, View):
         building_pk = building.pk if building else None
         visit.delete()
 
+        if building and building.is_finished:
+            has_remaining_visits = building.visits.exists()
+            if not has_remaining_visits:
+                building.is_finished = False
+                building.save(update_fields=['is_finished'])
+
         if building_pk:
             return redirect('mobilisation:building_visits', pk=building_pk)
         return redirect('mobilisation:dashboard')
