@@ -88,7 +88,7 @@ class Command(BaseCommand):
                 if not dry_run:
                     _, created = ElectionParticipation.objects.update_or_create(
                         election=election,
-                        desk=desk,
+                        voting_desk=desk,
                         defaults={
                             'abstention_percent': abs_pct,
                             'blancs_percent': blancs_pct,
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                     )
                     _, created = NuanceResult.objects.update_or_create(
                         election=election,
-                        desk=desk,
+                        voting_desk=desk,
                         nuance=nuance,
                         defaults={'ratio_voix_exprimes': score}
                     )
