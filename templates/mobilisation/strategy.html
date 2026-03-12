@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Stratégie{% endblock %}
+{% block page_title %}Stratégie entre-deux-tours{% endblock %}
+
+{% block extra_css %}
+<style>
+.sort-btn { @apply text-xs px-2 py-1 rounded border transition-colors; }
+    .sort-btn.active { @apply bg-primary-600 text-white border-primary-600; }
+    .sort-btn:not(.active) { @apply border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if not all_elections %}
+<div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-xl p-6 text-center text-amber-800 dark:text-amber-300">
+    <div class="text-2xl mb-2">📭</div>
+    <p class="font-medium">Aucune donnée électorale importée.</p>
+    <code class="block mt-2 text-xs bg-amber-100 dark:bg-amber-500/20 px-4 py-2 rounded">
+        python3 manage.py import_election 2020 muni t1 05
+    </code>
+</div>
+{% else %}
+
+<!-- Election selector -->
+<form method="get" id="filter-form">
+    <input type="hidden" name="sort" value="{{ sort_by }}">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-4">
+        <div class="flex flex-wrap items-end gap-6">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-2">
+                    <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                        Élections à comparer
+                    </label>
+                    <span id="selection-count" class="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+                        0/3 sélectionnées
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    {% for election in all_elections %}
+                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" name="elections" value="{{ election.id_election }}"
+                               class="election-cb w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-primary-600"
+                               {% if election.id_election in selected_ids %}checked{% endif %}>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ election.label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="shrink-0 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors">
+                Comparer
+            </button>
+        </div>
+    </div>
+</form>
+
+{% if selected_elections %}
+
+<!-- KPI cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Voix exprimées</div>
+        <div class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ total_expressed|default:0 }}</div>
+        <div class="text-xs text-slate-400 mt-0.5">{{ last_election_label }}</div>
+    </div>
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Réserve totale</div>
+        <div class="text-2xl font-bold text-orange-500">{{ total_reserve|default:0 }}</div>
+        <div class="text-xs text-slate-400 mt-0.5">réserve d'électeurs (Δ abst. max–min)</div>
+    </div>
+    {% if avg_delta is not None %}
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Δ participation moyen</div>
+        <div class="text-2xl font-bold {% if avg_delta > 0 %}text-green-500{% elif avg_delta < 0 %}text-red-500{% else %}text-slate-500{% endif %}">
+            {% if avg_delta > 0 %}+{% endif %}{{ avg_delta }}pts
+        </div>
+    </div>
+    {% endif %}
+    <div class="bg-white dark:bg-[#1e1e35] rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Élections comparées</div>
+        <div class="flex flex-col gap-0.5 mt-1">
+            {% for e in selected_elections %}
+            <span class="text-xs font-medium text-slate-700 dark:text-slate-300">{{ e.label }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Sort controls -->
+<div class="flex items-center gap-2 mb-3">
+    <span class="text-xs text-slate-500 dark:text-slate-400 mr-1">Trier par :</span>
+    <a href="?{% for id in selected_ids %}elections={{ id }}&{% endfor %}sort=reserve"
+       class="sort-btn {% if sort_by == 'reserve' %}active{% endif %}">Réserve</a>
+    <a href="?{% for id in selected_ids %}elections={{ id }}&{% endfor %}sort=abstention"
+       class="sort-btn {% if sort_by == 'abstention' %}active{% endif %}">Abstention</a>
+    {% if selected_elections|length >= 2 %}
+    <a href="?{% for id in selected_ids %}elections={{ id }}&{% endfor %}sort=delta"
+       class="sort-btn {% if sort_by == 'delta' %}active{% endif %}">Δ Participation</a>
+    {% endif %}
+</div>
+
+<!-- Main table -->
+<div class="bg-white dark:bg-[#1e1e35] rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-[#252542] border-b border-slate-200 dark:border-slate-700">
+                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase w-20">Bureau</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase w-24">Inscrits</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase w-24" title="Différentiel abstention max–min × inscrits">Réserve</th>
+                    {% if selected_elections|length >= 2 %}
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold text-slate-500 uppercase w-20">Δ Part.</th>
+                    {% endif %}
+                    {% for election in selected_elections %}
+                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase min-w-[180px]">
+                        {{ election.label }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for row in desk_rows %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+
+                    <!-- Bureau + priority badge -->
+                    <td class="px-3 py-3">
+                        <div class="flex items-center gap-1.5">
+                            {% if row.priority_score >= 65 %}
+                            <span class="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Haute priorité"></span>
+                            {% elif row.priority_score >= 55 %}
+                            <span class="w-2 h-2 rounded-full bg-orange-400 shrink-0" title="Priorité moyenne"></span>
+                            {% else %}
+                            <span class="w-2 h-2 rounded-full bg-green-400 shrink-0" title="Faible priorité"></span>
+                            {% endif %}
+                            <span class="font-semibold text-slate-800 dark:text-slate-200">{{ row.desk.code }}</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5 truncate max-w-[80px]" title="{{ row.desk.name }}">
+                            {{ row.desk.name|truncatechars:16 }}
+                        </div>
+                    </td>
+
+                    <!-- Inscrits -->
+                    <td class="px-3 py-3 text-right font-mono text-slate-600 dark:text-slate-400 text-xs">
+                        {{ row.num_electors }}
+                    </td>
+
+                    <!-- Réserve élastique -->
+                    <td class="px-3 py-3 text-right">
+                        <span class="font-bold {% if row.reserve_elastique >= 200 %}text-red-500{% elif row.reserve_elastique >= 100 %}text-orange-500{% else %}text-slate-600 dark:text-slate-400{% endif %}">
+                            {{ row.reserve_elastique }}
+                        </span>
+                        <div class="text-xs text-slate-400">réserve d'électeurs</div>
+                    </td>
+
+                    <!-- Delta participation -->
+                    {% if selected_elections|length >= 2 %}
+                    <td class="px-3 py-3 text-center">
+                        {% if row.delta_participation is not None %}
+                        <span class="inline-flex items-center gap-0.5 font-bold text-sm
+                            {% if row.delta_participation > 2 %}text-green-600 dark:text-green-400
+                            {% elif row.delta_participation < -2 %}text-red-600 dark:text-red-400
+                            {% else %}text-slate-500{% endif %}">
+                            {% if row.delta_participation > 0 %}▲{% elif row.delta_participation < 0 %}▼{% else %}–{% endif %}
+                            {{ row.delta_participation|floatformat:1 }}pts
+                        </span>
+                        {% else %}
+                        <span class="text-slate-300 dark:text-slate-600">—</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+
+                    <!-- One column per selected election -->
+                    {% for edata in row.elections_data %}
+                    <td class="px-3 py-3 min-w-[160px]">
+                        {% if edata %}
+                        <!-- Abstention -->
+                        <div class="text-sm font-bold mb-2
+                            {% if edata.abstention >= 65 %}text-red-500
+                            {% elif edata.abstention >= 55 %}text-orange-500
+                            {% else %}text-slate-600 dark:text-slate-400{% endif %}">
+                            {{ edata.abstention|floatformat:1 }}% abstention
+                        </div>
+                        <!-- Political stacked bar -->
+                        {% if edata.gradient %}
+                        <div class="mb-1.5" style="height:14px; border-radius:3px; background: {{ edata.gradient }};"></div>
+                        {% endif %}
+                        <div class="flex flex-wrap gap-x-2 gap-y-0.5">
+                            {% for block in edata.blocks %}
+                            <span class="inline-flex items-center gap-0.5 text-xs font-medium"
+                                  style="color: {{ block.color }}">
+                                {{ block.short }} {{ block.score|floatformat:0 }}%
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-xs text-slate-300 dark:text-slate-600 italic">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="px-4 py-10 text-center text-slate-400">
+                        Aucun bureau avec données pour ces élections.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<div class="bg-slate-50 dark:bg-[#1e1e35] rounded-xl p-10 text-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400">
+    <div class="text-3xl mb-2">☝️</div>
+    Sélectionnez 1 à 3 élections pour afficher la comparaison.
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enforce max 3 election checkboxes
+    const cbs = document.querySelectorAll('.election-cb');
+    const countLabel = document.getElementById('selection-count');
+
+    function updateCount() {
+        const checked = Array.from(cbs).filter(cb => cb.checked);
+        const n = checked.length;
+        if (countLabel) countLabel.textContent = `${n}/3 sélectionnée${n > 1 ? 's' : ''}`;
+        cbs.forEach(cb => {
+            if (!cb.checked && n >= 3) {
+                cb.disabled = true;
+                cb.parentElement.classList.add('opacity-40', 'cursor-not-allowed');
+            } else {
+                cb.disabled = false;
+                cb.parentElement.classList.remove('opacity-40', 'cursor-not-allowed');
+            }
+        });
+    }
+    cbs.forEach(cb => cb.addEventListener('change', updateCount));
+    updateCount();
+</script>
+{% endblock %}

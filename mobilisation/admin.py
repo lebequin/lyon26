@@ -8,7 +8,7 @@ from django.urls import path
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import Visit, Tractage, ElectionResult, UserProfile
+from .models import Visit, Tractage, ElectionResult, UserProfile, Election, Nuance, Alliance, ElectionParticipation, NuanceResult
 from territory.models import VotingDesk, Building, District
 
 
@@ -352,3 +352,46 @@ class ElectionResultAdmin(admin.ModelAdmin):
             'expected_columns': 'BV; Lieu; Quartier; 21REG T2 Exprimes; ... (format Excel copie-colle)',
             'opts': self.model._meta,
         })
+
+
+class NuanceResultInline(admin.TabularInline):
+    model = NuanceResult
+    extra = 0
+    fields = ('nuance', 'ratio_voix_exprimes')
+
+
+@admin.register(Election)
+class ElectionAdmin(admin.ModelAdmin):
+    list_display = ('label', 'type_election', 'tour', 'year', 'id_election')
+    list_filter = ('type_election', 'tour', 'year')
+    ordering = ('-year', 'type_election', 'tour')
+
+
+@admin.register(Nuance)
+class NuanceAdmin(admin.ModelAdmin):
+    list_display = ('code', 'label', 'color')
+    search_fields = ('code', 'label')
+
+
+@admin.register(Alliance)
+class AllianceAdmin(admin.ModelAdmin):
+    list_display = ('label', 'color', 'nuance_list')
+    filter_horizontal = ('nuances',)
+
+    def nuance_list(self, obj):
+        return ", ".join(n.code for n in obj.nuances.all())
+    nuance_list.short_description = "Nuances"
+
+
+@admin.register(ElectionParticipation)
+class ElectionParticipationAdmin(admin.ModelAdmin):
+    list_display = ('election', 'voting_desk', 'abstention_percent', 'blancs_percent')
+    list_filter = ('election',)
+    search_fields = ('voting_desk__code',)
+
+
+@admin.register(NuanceResult)
+class NuanceResultAdmin(admin.ModelAdmin):
+    list_display = ('election', 'voting_desk', 'nuance', 'ratio_voix_exprimes')
+    list_filter = ('election', 'nuance')
+    search_fields = ('voting_desk__code',)

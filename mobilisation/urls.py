@@ -1,5 +1,7 @@
 from django.urls import path
 from .views import (
+    StrategyView,
+    StrategyAPIView,
     DashboardView,
     AddVisitView,
     BuildingsAPIView,
@@ -52,6 +54,8 @@ urlpatterns = [
     path('tractage/<int:pk>/increment/', TractageIncrementView.as_view(), name='tractage_increment'),
     path('api/buildings/', BuildingsAPIView.as_view(), name='buildings_api'),
     path('api/tractages/', TractageAPIView.as_view(), name='tractages_api'),
+    path('strategie/', StrategyView.as_view(), name='strategy'),
+    path('api/strategy/', StrategyAPIView.as_view(), name='strategy_api'),
     path('api/voting-desk-boundaries/', VotingDeskBoundariesAPIView.as_view(), name='voting_desk_boundaries_api'),
     path('api/buildings/search/', BuildingSearchView.as_view(), name='building_search'),
     path('api/buildings/<int:pk>/', BuildingDetailView.as_view(), name='building_detail'),

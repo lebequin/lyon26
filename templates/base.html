@@ -102,7 +102,7 @@
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
                         onclick="closeSidebar()">
-                        <span class="text-xl">🎯</span>
+                        <span class="text-xl">🏠</span>
                         <span class="font-medium">Adresses</span>
                     </a>
                 </li>
@@ -131,6 +131,19 @@
                         onclick="closeSidebar()">
                         <span class="text-xl">📋</span>
                         <span class="font-medium">Actions</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'mobilisation:strategy' %}"
+                        class="flex items-center gap-4 p-3 rounded-lg transition-all
+                        {% if request.resolver_match.url_name == 'strategy' %}
+                        bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border-l-4 border-primary-500
+                        {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
+                        {% endif %}"
+                        onclick="closeSidebar()">
+                        <span class="text-xl">🎯</span>
+                        <span class="font-medium">Stratégie</span>
                     </a>
                 </li>
                 <li>
