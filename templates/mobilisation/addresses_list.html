@@ -23,8 +23,19 @@
                    class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
         </div>
 
+        <!-- District filter -->
+        <div class="w-48">
+            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Arrondissement</label>
+            <select name="district" onchange="this.form.submit()" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
+                <option value="">Tous</option>
+                {% for d in districts %}
+                <option value="{{ d.code }}" {% if current_district == d.code %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <!-- Voting desk filter -->
-        <div class="w-64">
+        <div class="w-52">
             <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Bureau</label>
             <select name="bureau" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200">
                 <option value="">Tous</option>
@@ -69,7 +80,7 @@
             Filtrer
         </button>
 
-        {% if query or current_bureau or current_priority or current_hlm or current_finished %}
+        {% if query or current_bureau or current_district or current_priority or current_hlm or current_finished %}
         <a href="{% url 'mobilisation:addresses_list' %}" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
             Reinitialiser
         </a>
@@ -165,4 +176,37 @@
         </table>
     </div>
 </div>
+
+<!-- Pagination -->
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="flex items-center justify-between mt-4">
+    <div class="text-sm text-slate-500 dark:text-slate-400">
+        Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} &mdash; {{ total_buildings }} adresses
+    </div>
+    <div class="flex gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+           class="px-3 py-2 rounded-lg bg-white dark:bg-[#1e1e35] border border-slate-200 dark:border-slate-700 text-sm hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+            &larr; Précédent
+        </a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="px-3 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium">{{ num }}</span>
+            {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+            <a href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ num }}"
+               class="px-3 py-2 rounded-lg bg-white dark:bg-[#1e1e35] border border-slate-200 dark:border-slate-700 text-sm hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+                {{ num }}
+            </a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+           class="px-3 py-2 rounded-lg bg-white dark:bg-[#1e1e35] border border-slate-200 dark:border-slate-700 text-sm hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
+            Suivant &rarr;
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -1,6 +1,7 @@
 import csv
 from django.http import JsonResponse, HttpResponse
 from django.views.generic import TemplateView, ListView
+from django.core.paginator import Paginator
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum, Count, Q
@@ -9,7 +10,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from datetime import datetime, timedelta
 
-from territory.models import Building, VotingDesk
+from territory.models import Building, VotingDesk, District
 from .models import Visit, Tractage, ElectionResult, Election, Alliance, ElectionParticipation, NuanceResult, Nuance
 
 
@@ -578,18 +579,22 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         # Get filter parameters
         priority = self.request.GET.get('priority', '')
         voting_desk_code = self.request.GET.get('bureau', '')
+        district_code = self.request.GET.get('district', '')
         is_hlm = self.request.GET.get('hlm', '')
         is_finished = self.request.GET.get('finished', '')
         query = self.request.GET.get('q', '').strip()
 
         # Base queryset with annotations
-        buildings = Building.objects.select_related('voting_desk').annotate(
+        buildings = Building.objects.select_related('voting_desk', 'voting_desk__district').annotate(
             total_open=Sum('visits__open_doors'),
             total_knocked=Sum('visits__knocked_doors'),
             visit_count=Count('visits')
         )
 
         # Apply filters
+        if district_code:
+            buildings = buildings.filter(voting_desk__district__code=district_code)
+
         if voting_desk_code:
             buildings = buildings.filter(voting_desk__code=voting_desk_code)
 
@@ -615,28 +620,44 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         # Order by num_electors descending
         buildings = buildings.order_by('-num_electors', 'street_name', 'street_number')
 
-        # Calculate stats
-        for bldg in buildings:
+        # Stats on full queryset before pagination
+        total_buildings = buildings.count()
+        total_electors = buildings.aggregate(total=Sum('num_electors'))['total'] or 0
+        context['total_buildings'] = total_buildings
+        context['total_electors'] = total_electors
+        context['avg_electors'] = round(total_electors / total_buildings, 1) if total_buildings > 0 else 0
+
+        # Pagination
+        paginator = Paginator(buildings, 25)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        # Calculate stats on current page
+        for bldg in page_obj:
             bldg.total_open = bldg.total_open or 0
             bldg.total_knocked = bldg.total_knocked or 0
             bldg.open_rate = round((bldg.total_open / bldg.total_knocked * 100), 1) if bldg.total_knocked > 0 else 0
 
-        context['buildings'] = buildings
-        context['total_buildings'] = buildings.count()
-        context['total_electors'] = sum(b.num_electors for b in buildings)
-        context['avg_electors'] = round(context['total_electors'] / context['total_buildings'], 1) if context['total_buildings'] > 0 else 0
+        context['buildings'] = page_obj
+        context['page_obj'] = page_obj
 
         # Get available priorities for filter
         context['priorities'] = VotingDesk.objects.exclude(
             priority__isnull=True
         ).values_list('priority', flat=True).distinct().order_by('priority')
 
-        # Get all voting desks for filter
-        context['voting_desks'] = VotingDesk.objects.all().order_by('code')
+        # Get all voting desks for filter (filtered by district if selected)
+        voting_desks_qs = VotingDesk.objects.all().order_by('code')
+        if district_code:
+            voting_desks_qs = voting_desks_qs.filter(district__code=district_code)
+        context['voting_desks'] = voting_desks_qs
+
+        context['districts'] = District.objects.all().order_by('code')
 
         # Current filters for template
         context['current_priority'] = priority
         context['current_bureau'] = voting_desk_code
+        context['current_district'] = district_code
         context['current_hlm'] = is_hlm
         context['current_finished'] = is_finished
         context['query'] = query
