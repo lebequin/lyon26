@@ -5,6 +5,7 @@ Usage:
     python manage.py import_buildings /path/to/502.csv
     python manage.py import_buildings /path/to/*.csv
     python manage.py import_buildings /path/to/502.csv --district-code 5
+    python manage.py import_buildings --arrondissement 9
 
 The voting desk code is extracted from the filename (e.g., 502.csv -> code "502").
 """
@@ -24,8 +25,14 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             'files',
-            nargs='+',
+            nargs='*',
             help='CSV file(s) to import. Filename (without extension) is the voting desk code.'
+        )
+        parser.add_argument(
+            '--arrondissement',
+            type=str,
+            default=None,
+            help='Import all bureaux for this arrondissement (e.g. 5 or 9). Looks in territory/data/.'
         )
         parser.add_argument(
             '--district-code',
@@ -43,6 +50,17 @@ class Command(BaseCommand):
         files = options['files']
         district_code = options['district_code']
         dry_run = options['dry_run']
+        arrondissement = options['arrondissement']
+
+        if arrondissement:
+            data_dir = Path(__file__).resolve().parents[4] / 'territory' / 'data'
+            files = sorted(data_dir.glob(f'{arrondissement}*.csv'))
+            if not files:
+                raise CommandError(f'No CSV files found for arrondissement {arrondissement} in {data_dir}')
+            self.stdout.write(f'Found {len(files)} files for arrondissement {arrondissement}')
+
+        if not files:
+            raise CommandError('No files specified. Use file paths or --arrondissement.')
 
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN - No changes will be made'))
