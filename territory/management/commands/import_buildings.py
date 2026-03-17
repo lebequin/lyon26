@@ -53,7 +53,7 @@ class Command(BaseCommand):
         arrondissement = options['arrondissement']
 
         if arrondissement:
-            data_dir = Path(__file__).resolve().parents[4] / 'territory' / 'data'
+            data_dir = Path(__file__).resolve().parents[3] / 'territory' / 'data'
             files = sorted(data_dir.glob(f'{arrondissement}*.csv'))
             if not files:
                 raise CommandError(f'No CSV files found for arrondissement {arrondissement} in {data_dir}')
