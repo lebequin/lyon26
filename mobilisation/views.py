@@ -36,6 +36,7 @@ class AddVisitView(LoginRequiredMixin, View):
             open_doors = int(request.POST.get('open_doors', 0))
             comment = request.POST.get('comment', '')
             is_finished = request.POST.get('is_finished') == 'on'
+            tour = int(request.POST.get('tour', 2))
 
             building = get_object_or_404(Building, pk=building_id)
 
@@ -43,7 +44,8 @@ class AddVisitView(LoginRequiredMixin, View):
             visit = Visit.objects.create(
                 open_doors=open_doors,
                 knocked_doors=knocked_doors,
-                comment=comment
+                comment=comment,
+                tour=tour
             )
             visit.buildings.add(building)
 
@@ -62,13 +64,15 @@ class BuildingsAPIView(LoginRequiredMixin, View):
     """JSON API endpoint for map markers - only visited buildings"""
 
     def get(self, request):
+        tour = int(request.GET.get('tour', 2))
+        tour_filter = Q(visits__tour=tour)
         buildings = Building.objects.filter(
             latitude__isnull=False,
             longitude__isnull=False
         ).select_related('voting_desk').annotate(
-            total_open=Sum('visits__open_doors'),
-            total_knocked=Sum('visits__knocked_doors'),
-            visit_count=Count('visits')
+            total_open=Sum('visits__open_doors', filter=tour_filter),
+            total_knocked=Sum('visits__knocked_doors', filter=tour_filter),
+            visit_count=Count('visits', filter=tour_filter)
         ).filter(visit_count__gt=0)
 
         data = []
@@ -301,12 +305,14 @@ class VisitCreateView(LoginRequiredMixin, View):
         date = request.POST.get('date')
         comment = request.POST.get('comment', '')
         is_finished = request.POST.get('is_finished') == 'on'
+        tour = int(request.POST.get('tour', 2))
 
         visit = Visit.objects.create(
             open_doors=open_doors,
             knocked_doors=knocked_doors,
             date=date,
-            comment=comment
+            comment=comment,
+            tour=tour
         )
         visit.buildings.add(building)
 
@@ -341,6 +347,7 @@ class VisitEditView(LoginRequiredMixin, View):
         if date_str:
             visit.date = datetime.strptime(date_str, '%Y-%m-%d').date()
         visit.comment = request.POST.get('comment', '')
+        visit.tour = int(request.POST.get('tour', visit.tour))
         visit.save()
 
         is_finished = request.POST.get('is_finished') == 'on'

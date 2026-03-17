@@ -7,10 +7,17 @@ class Visit(models.Model):
     Represents a door-to-door visit session.
     Can be linked to multiple buildings (for shared entrances).
     """
+    TOUR_CHOICES = [(1, '1er tour'), (2, '2nd tour')]
+
     buildings = models.ManyToManyField(
         'territory.Building',
         related_name='visits',
         verbose_name="Immeubles"
+    )
+    tour = models.PositiveSmallIntegerField(
+        choices=TOUR_CHOICES,
+        default=2,
+        verbose_name="Tour"
     )
     date = models.DateField(default=date.today, verbose_name="Date")
     open_doors = models.PositiveIntegerField(default=0, verbose_name="Portes ouvertes")

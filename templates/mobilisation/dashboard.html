@@ -125,6 +125,10 @@
             <button id="toggle-boundaries" class="map-control-btn">
                 <span>🗺️</span> Masquer zones
             </button>
+            <!-- Tour switch -->
+            <div class="map-control-btn p-0 overflow-hidden" style="padding:0;">
+                <button id="btn-tour-1" onclick="setTour(1)" class="px-3 py-2 text-xs font-medium transition-colors" style="background:transparent;color:#64748b;">1er tour</button><button id="btn-tour-2" onclick="setTour(2)" class="px-3 py-2 text-xs font-medium transition-colors" style="background:#6366f1;color:white;">2nd tour</button>
+            </div>
         </div>
 
         <!-- Legend -->
@@ -166,6 +170,7 @@
 
         <form method="post" id="visit-form" class="flex flex-col flex-1">
             {% csrf_token %}
+            <input type="hidden" name="tour" id="tour-value" value="2">
 
             <!-- Search field with HTMX -->
             <div class="mb-4 relative">
@@ -246,6 +251,7 @@
     // Store markers for reference
     const markers = {};
     let selectedMarker = null;
+    let currentTour = 2;
 
     // Custom marker icons
     function createIcon(color) {
@@ -264,8 +270,13 @@
 
     // Load buildings for map
     async function loadBuildings() {
+        // Remove existing building markers
+        Object.values(markers).forEach(({ marker }) => map.removeLayer(marker));
+        Object.keys(markers).forEach(k => delete markers[k]);
+        selectedMarker = null;
+
         try {
-            const response = await fetch('{% url "mobilisation:buildings_api" %}');
+            const response = await fetch('{% url "mobilisation:buildings_api" %}?tour=' + currentTour);
             const data = await response.json();
 
             data.buildings.forEach(bldg => {
@@ -292,6 +303,25 @@
         } catch (error) {
             console.error('Error loading buildings:', error);
         }
+    }
+
+    function setTour(tour) {
+        currentTour = tour;
+        const tourInput = document.getElementById('tour-value');
+        if (tourInput) tourInput.value = tour;
+
+        // Update button styles
+        const btn1 = document.getElementById('btn-tour-1');
+        const btn2 = document.getElementById('btn-tour-2');
+        if (tour === 1) {
+            btn1.style.background = '#6366f1'; btn1.style.color = 'white';
+            btn2.style.background = 'transparent'; btn2.style.color = '#64748b';
+        } else {
+            btn2.style.background = '#6366f1'; btn2.style.color = 'white';
+            btn1.style.background = 'transparent'; btn1.style.color = '#64748b';
+        }
+
+        loadBuildings();
     }
 
     loadBuildings();
@@ -520,19 +550,6 @@
             if (result.success) {
                 showToast('Visite enregistrée!', 'success');
 
-                const newOpen = parseInt(formData.get('open_doors')) || 0;
-                const newKnocked = parseInt(formData.get('knocked_doors')) || 0;
-                const isFinished = formData.get('is_finished') === 'on';
-
-                // Update marker data and color
-                if (selectedMarker && markers[selectedMarker]) {
-                    markers[selectedMarker].data.total_open = newOpen;
-                    markers[selectedMarker].data.total_knocked = newKnocked;
-                    markers[selectedMarker].data.open_rate = newKnocked > 0 ? Math.round(newOpen / newKnocked * 1000) / 10 : 0;
-                    markers[selectedMarker].data.is_finished = isFinished;
-                    markers[selectedMarker].marker.setIcon(isFinished ? iconFinished : iconDefault);
-                }
-
                 // Reset form
                 this.reset();
                 buildingIdInput.value = '';
@@ -540,6 +557,9 @@
                 submitBtn.disabled = true;
                 selectedInfo.classList.add('hidden');
                 selectedMarker = null;
+
+                // Reload markers to show new point
+                loadBuildings();
             } else {
                 showToast('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
             }
