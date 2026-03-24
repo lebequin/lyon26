@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import date
+from simple_history.models import HistoricalRecords
 
 
 class Visit(models.Model):
@@ -26,6 +27,7 @@ class Visit(models.Model):
     knocked_doors = models.PositiveIntegerField(default=0, verbose_name="Portes frappées")
     comment = models.TextField(blank=True, default="", verbose_name="Commentaire")
     created_at = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "Visite"

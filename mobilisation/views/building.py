@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 
 from territory.models import Building, VotingDesk, District
 from .exports import compute_open_rate
+from ..filters import BuildingFilter
 
 
 class BuildingsAPIView(LoginRequiredMixin, View):
@@ -192,43 +193,12 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        priority = self.request.GET.get('priority', '')
-        voting_desk_code = self.request.GET.get('bureau', '')
-        district_code = self.request.GET.get('district', '')
-        is_hlm = self.request.GET.get('hlm', '')
-        is_finished = self.request.GET.get('finished', '')
-        query = self.request.GET.get('q', '').strip()
-
-        buildings = Building.objects.select_related(
+        base_qs = Building.objects.select_related(
             'voting_desk', 'voting_desk__district'
         ).with_visit_stats()
 
-        if district_code:
-            buildings = buildings.filter(voting_desk__district__code=district_code)
-
-        if voting_desk_code:
-            buildings = buildings.filter(voting_desk__code=voting_desk_code)
-
-        if priority:
-            buildings = buildings.filter(voting_desk__priority=int(priority))
-
-        if is_hlm == '1':
-            buildings = buildings.filter(is_hlm=True)
-        elif is_hlm == '0':
-            buildings = buildings.filter(is_hlm=False)
-
-        if is_finished == '1':
-            buildings = buildings.filter(is_finished=True)
-        elif is_finished == '0':
-            buildings = buildings.filter(is_finished=False)
-
-        if query:
-            buildings = buildings.filter(
-                Q(street_name__icontains=query) |
-                Q(street_number__icontains=query)
-            )
-
-        buildings = buildings.order_by('-num_electors', 'street_name', 'street_number')
+        f = BuildingFilter(self.request.GET, queryset=base_qs)
+        buildings = f.qs.order_by('-num_electors', 'street_name', 'street_number')
 
         total_buildings = buildings.count()
         total_electors = buildings.aggregate(total=Sum('num_electors'))['total'] or 0
@@ -237,8 +207,7 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         context['avg_electors'] = round(total_electors / total_buildings, 1) if total_buildings > 0 else 0
 
         paginator = Paginator(buildings, 25)
-        page_number = self.request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
+        page_obj = paginator.get_page(self.request.GET.get('page'))
 
         for bldg in page_obj:
             bldg.total_open = bldg.total_open or 0
@@ -248,6 +217,8 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         context['buildings'] = page_obj
         context['page_obj'] = page_obj
 
+        # Valeurs courantes pour le template (inchangées)
+        district_code = self.request.GET.get('district', '')
         context['priorities'] = VotingDesk.objects.exclude(
             priority__isnull=True
         ).values_list('priority', flat=True).distinct().order_by('priority')
@@ -256,14 +227,13 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         if district_code:
             voting_desks_qs = voting_desks_qs.filter(district__code=district_code)
         context['voting_desks'] = voting_desks_qs
-
         context['districts'] = District.objects.all().order_by('code')
 
-        context['current_priority'] = priority
-        context['current_bureau'] = voting_desk_code
+        context['current_priority'] = self.request.GET.get('priority', '')
+        context['current_bureau'] = self.request.GET.get('bureau', '')
         context['current_district'] = district_code
-        context['current_hlm'] = is_hlm
-        context['current_finished'] = is_finished
-        context['query'] = query
+        context['current_hlm'] = self.request.GET.get('hlm', '')
+        context['current_finished'] = self.request.GET.get('finished', '')
+        context['query'] = self.request.GET.get('q', '')
 
         return context

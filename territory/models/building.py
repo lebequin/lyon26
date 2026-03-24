@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Sum, Count
+from simple_history.models import HistoricalRecords
 from .voting_desk import VotingDesk
 
 
@@ -35,6 +36,7 @@ class Building(models.Model):
     is_finished = models.BooleanField(default=False, verbose_name="Terminé")
     # Social housing flag (HLM - from RPLS data)
     is_hlm = models.BooleanField(default=False, verbose_name="Logement social (HLM)")
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "Immeuble"

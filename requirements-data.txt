@@ -1,0 +1,12 @@
+# Dépendances pour les scripts d'import de données ponctuels
+# (management commands : import_election, import_election_csv)
+# Ne pas inclure dans le déploiement principal.
+# Usage : pip install -r requirements-data.txt
+numpy
+openpyxl
+pandas
+pillow
+pyarrow
+requests
+six
+python-dateutil
