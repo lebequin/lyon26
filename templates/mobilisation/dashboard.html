@@ -121,13 +121,17 @@
         <div id="map"></div>
 
         <!-- Map Controls -->
-        <div class="map-controls">
-            <button id="toggle-boundaries" class="map-control-btn">
-                <span>🗺️</span> Masquer zones
+        <div class="map-controls" x-data="tourState">
+            <button class="map-control-btn" @click="toggleBoundaries()">
+                <span>🗺️</span> <span x-text="boundariesVisible ? 'Masquer zones' : 'Afficher zones'">Masquer zones</span>
             </button>
             <!-- Tour switch -->
             <div class="map-control-btn p-0 overflow-hidden" style="padding:0;">
-                <button id="btn-tour-1" onclick="setTour(1)" class="px-3 py-2 text-xs font-medium transition-colors" style="background:transparent;color:#64748b;">1er tour</button><button id="btn-tour-2" onclick="setTour(2)" class="px-3 py-2 text-xs font-medium transition-colors" style="background:#6366f1;color:white;">2nd tour</button>
+                <button @click="setTour(1)"
+                        class="px-3 py-2 text-xs font-medium transition-colors"
+                        :style="tour === 1 ? 'background:#6366f1;color:white;' : 'background:transparent;color:#64748b;'">1er tour</button><button @click="setTour(2)"
+                        class="px-3 py-2 text-xs font-medium transition-colors"
+                        :style="tour === 2 ? 'background:#6366f1;color:white;' : 'background:transparent;color:#64748b;'">2nd tour</button>
             </div>
         </div>
 
@@ -234,6 +238,33 @@
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // Register Alpine component for tour/boundaries controls
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('tourState', () => ({
+            tour: 2,
+            boundariesVisible: true,
+
+            setTour(t) {
+                this.tour = t;
+                const tourInput = document.getElementById('tour-value');
+                if (tourInput) tourInput.value = t;
+                loadBuildings(t);
+            },
+
+            toggleBoundaries() {
+                this.boundariesVisible = !this.boundariesVisible;
+                const legend = document.getElementById('map-legend');
+                if (this.boundariesVisible) {
+                    if (boundariesLayer) boundariesLayer.addTo(map);
+                    legend.style.display = 'block';
+                } else {
+                    if (boundariesLayer) map.removeLayer(boundariesLayer);
+                    legend.style.display = 'none';
+                }
+            }
+        }));
+    });
+
     // Elements
     const searchInput = document.getElementById('building-search');
     const searchResults = document.getElementById('search-results');
@@ -251,7 +282,6 @@
     // Store markers for reference
     const markers = {};
     let selectedMarker = null;
-    let currentTour = 2;
 
     // Custom marker icons
     function createIcon(color) {
@@ -269,14 +299,14 @@
     const iconTractage = createIcon('#8b5cf6');
 
     // Load buildings for map
-    async function loadBuildings() {
+    async function loadBuildings(tour = 2) {
         // Remove existing building markers
         Object.values(markers).forEach(({ marker }) => map.removeLayer(marker));
         Object.keys(markers).forEach(k => delete markers[k]);
         selectedMarker = null;
 
         try {
-            const response = await fetch('{% url "mobilisation:buildings_api" %}?tour=' + currentTour);
+            const response = await fetch('{% url "mobilisation:buildings_api" %}?tour=' + tour);
             const data = await response.json();
 
             data.buildings.forEach(bldg => {
@@ -305,25 +335,6 @@
         }
     }
 
-    function setTour(tour) {
-        currentTour = tour;
-        const tourInput = document.getElementById('tour-value');
-        if (tourInput) tourInput.value = tour;
-
-        // Update button styles
-        const btn1 = document.getElementById('btn-tour-1');
-        const btn2 = document.getElementById('btn-tour-2');
-        if (tour === 1) {
-            btn1.style.background = '#6366f1'; btn1.style.color = 'white';
-            btn2.style.background = 'transparent'; btn2.style.color = '#64748b';
-        } else {
-            btn2.style.background = '#6366f1'; btn2.style.color = 'white';
-            btn1.style.background = 'transparent'; btn1.style.color = '#64748b';
-        }
-
-        loadBuildings();
-    }
-
     loadBuildings();
 
     // Load tractages for map
@@ -338,7 +349,7 @@
 
                 marker.bindPopup(`
                     <div>
-                        <div class="popup-title">${t.label}</div>
+                        <div class="popup-title">${t.name}</div>
                         <div class="popup-stats">
                             ${t.type_display}${t.voting_desk ? ' | Bureau ' + t.voting_desk : ''}<br>
                             ${t.address ? t.address + '<br>' : ''}
@@ -367,15 +378,13 @@
                 return;
             }
 
-            // Color scale based on NFP percentage (leg24)
-            // Matches priority colors: dark green > green > light yellow > dark yellow > blue
             function getColor(percent) {
-                if (percent >= 50) return '#047857'; // emerald-700 - excellent
-                if (percent >= 45) return '#22c55e'; // green-500
-                if (percent >= 40) return '#fef08a'; // yellow-200 - light yellow
-                if (percent >= 35) return '#facc15'; // yellow-400 - dark yellow
-                if (percent >= 30) return '#93c5fd'; // blue-300
-                return '#3b82f6'; // blue-500 - low NFP
+                if (percent >= 50) return '#047857';
+                if (percent >= 45) return '#22c55e';
+                if (percent >= 40) return '#fef08a';
+                if (percent >= 35) return '#facc15';
+                if (percent >= 30) return '#93c5fd';
+                return '#3b82f6';
             }
 
             function style(feature) {
@@ -394,7 +403,7 @@
                 const props = feature.properties;
                 const election = props.election;
 
-                let popupContent = `
+                layer.bindPopup(`
                     <div>
                         <div class="popup-title">Bureau ${props.numero}</div>
                         <div class="popup-stats">
@@ -408,17 +417,11 @@
                             ` : 'Pas de données électorales'}
                         </div>
                     </div>
-                `;
-
-                layer.bindPopup(popupContent);
+                `);
 
                 layer.on({
                     mouseover: function(e) {
-                        const layer = e.target;
-                        layer.setStyle({
-                            weight: 3,
-                            fillOpacity: 0.7
-                        });
+                        e.target.setStyle({ weight: 3, fillOpacity: 0.7 });
                     },
                     mouseout: function(e) {
                         boundariesLayer.resetStyle(e.target);
@@ -431,7 +434,6 @@
                 onEachFeature: onEachFeature
             }).addTo(map);
 
-            // Send boundaries to back so markers are on top
             boundariesLayer.bringToBack();
 
         } catch (error) {
@@ -440,24 +442,6 @@
     }
 
     loadVotingDeskBoundaries();
-
-    // Toggle boundaries visibility
-    const toggleBtn = document.getElementById('toggle-boundaries');
-    const legend = document.getElementById('map-legend');
-    let boundariesVisible = true;
-
-    toggleBtn.addEventListener('click', function() {
-        if (boundariesVisible) {
-            if (boundariesLayer) map.removeLayer(boundariesLayer);
-            legend.style.display = 'none';
-            toggleBtn.innerHTML = '<span>🗺️</span> Afficher zones';
-        } else {
-            if (boundariesLayer) boundariesLayer.addTo(map);
-            legend.style.display = 'block';
-            toggleBtn.innerHTML = '<span>🗺️</span> Masquer zones';
-        }
-        boundariesVisible = !boundariesVisible;
-    });
 
     // Show/hide search results
     document.body.addEventListener('htmx:afterSwap', function(e) {
@@ -481,12 +465,10 @@
         selectedInfo.classList.remove('hidden');
         submitBtn.disabled = false;
 
-        // Fill form
         document.getElementById('open-doors').value = totalOpen;
         document.getElementById('knocked-doors').value = totalKnocked;
         document.getElementById('is-finished').checked = isFinished;
 
-        // Update marker
         updateSelectedMarker(id);
     }
 
@@ -499,28 +481,23 @@
         searchInput.value = bldg.address;
         submitBtn.disabled = false;
 
-        // Fill form
         document.getElementById('open-doors').value = bldg.total_open;
         document.getElementById('knocked-doors').value = bldg.total_knocked;
         document.getElementById('is-finished').checked = bldg.is_finished;
 
-        // Update info box via HTMX
         htmx.ajax('GET', '{% url "mobilisation:building_detail" 0 %}'.replace('0', id), {target: '#selected-info', swap: 'innerHTML'});
         selectedInfo.classList.remove('hidden');
 
-        // Update marker
         updateSelectedMarker(id);
     }
 
     // Update marker styling
     function updateSelectedMarker(id) {
-        // Reset previous marker
         if (selectedMarker && markers[selectedMarker]) {
             const prevData = markers[selectedMarker].data;
             markers[selectedMarker].marker.setIcon(prevData.is_finished ? iconFinished : iconDefault);
         }
 
-        // Highlight new marker
         if (markers[id]) {
             markers[id].marker.setIcon(iconSelected);
             selectedMarker = id;
@@ -540,26 +517,20 @@
             const response = await fetch('{% url "mobilisation:visit_create_api" %}', {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
             });
 
             const result = await response.json();
 
             if (result.success) {
                 showToast('Visite enregistrée!', 'success');
-
-                // Reset form
                 this.reset();
                 buildingIdInput.value = '';
                 searchInput.value = '';
                 submitBtn.disabled = true;
                 selectedInfo.classList.add('hidden');
                 selectedMarker = null;
-
-                // Reload markers to show new point
-                loadBuildings();
+                loadBuildings(parseInt(document.getElementById('tour-value').value) || 2);
             } else {
                 showToast('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
             }

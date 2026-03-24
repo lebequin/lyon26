@@ -45,19 +45,24 @@
 </head>
 
 <body class="font-['Inter'] bg-slate-100 dark:bg-[#0f0f1a] text-slate-800 dark:text-slate-100 min-h-screen">
-    <div class="flex min-h-screen">
+    <div class="flex min-h-screen" x-data="{ sidebarOpen: false }">
         <!-- Mobile Overlay -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+        <div class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+             x-show="sidebarOpen"
+             @click="sidebarOpen = false"
+             x-transition.opacity
+             style="display:none;"></div>
 
         <!-- Sidebar Navigation -->
-        <nav id="sidebar" class="w-64 bg-white dark:bg-gradient-to-b dark:from-[#1a1a2e] dark:to-[#0f0f1a] border-r border-slate-200 dark:border-slate-700 flex flex-col fixed h-screen z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <nav class="w-64 bg-white dark:bg-gradient-to-b dark:from-[#1a1a2e] dark:to-[#0f0f1a] border-r border-slate-200 dark:border-slate-700 flex flex-col fixed h-screen z-50 lg:translate-x-0 transition-transform duration-300"
+             :class="{ '-translate-x-full': !sidebarOpen }">
             <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">🗳️</span>
                     <span class="text-xl font-bold bg-gradient-to-r from-primary-500 to-teal-500 bg-clip-text text-transparent">Lyon 2026</span>
                 </div>
                 <!-- Close button (mobile only) -->
-                <button class="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="closeSidebar()">
+                <button class="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" @click="sidebarOpen = false">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -73,7 +78,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">🗺️</span>
                         <span class="font-medium">Carte</span>
                     </a>
@@ -87,7 +92,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">📊</span>
                         <span class="font-medium">Bureaux de vote</span>
                     </a>
@@ -101,7 +106,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">🏠</span>
                         <span class="font-medium">Adresses</span>
                     </a>
@@ -115,7 +120,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">📄</span>
                         <span class="font-medium">Tractage</span>
                     </a>
@@ -123,12 +128,12 @@
                 <li>
                     <a href="{% url 'mobilisation:canvassing_list' %}"
                         class="flex items-center gap-4 p-3 rounded-lg transition-all
-                        {% if request.resolver_match.url_name == 'actions_list' %}
+                        {% if request.resolver_match.url_name == 'canvassing_list' %}
                         bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border-l-4 border-primary-500
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">📋</span>
                         <span class="font-medium">Actions</span>
                     </a>
@@ -141,7 +146,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">🎯</span>
                         <span class="font-medium">Stratégie</span>
                     </a>
@@ -154,7 +159,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">🗳️</span>
                         <span class="font-medium">Elections</span>
                     </a>
@@ -167,7 +172,7 @@
                         {% else %}
                         text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100
                         {% endif %}"
-                        onclick="closeSidebar()">
+                        @click="sidebarOpen = false">
                         <span class="text-xl">📈</span>
                         <span class="font-medium">Statistiques</span>
                     </a>
@@ -201,7 +206,7 @@
         <main class="flex-1 lg:ml-64 min-h-screen w-full">
             <header class="flex justify-between items-center p-4 sm:p-6 bg-white dark:bg-[#1a1a2e] border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 gap-3">
                 <!-- Burger menu (mobile only) -->
-                <button class="lg:hidden text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0" onclick="openSidebar()">
+                <button class="lg:hidden text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0" @click="sidebarOpen = true">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
@@ -234,29 +239,47 @@
             </div>
 
             <!-- Toast container for notifications -->
-            <div id="toast-container" class="fixed top-6 right-6 z-[1100] flex flex-col gap-2 max-w-sm"></div>
+            <div x-data class="fixed top-6 right-6 z-[1100] flex flex-col gap-2 max-w-sm">
+                <template x-for="toast in $store.toasts.items" :key="toast.id">
+                    <div class="flex justify-between items-center p-4 rounded-lg border shadow-lg"
+                         :class="{
+                             'bg-green-100 dark:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400': toast.type === 'success',
+                             'bg-yellow-100 dark:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400': toast.type === 'warning',
+                             'bg-red-100 dark:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400': toast.type === 'error',
+                             'bg-blue-100 dark:bg-blue-500/10 border-blue-500 text-blue-700 dark:text-blue-400': toast.type === 'info'
+                         }"
+                         x-transition.opacity>
+                        <span x-text="toast.message"></span>
+                        <button class="text-xl opacity-70 hover:opacity-100 ml-4" @click="$store.toasts.remove(toast.id)">×</button>
+                    </div>
+                </template>
+            </div>
         </main>
     </div>
+
+    <!-- Alpine.js -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('toasts', {
+                items: [],
+                add(message, type = 'info') {
+                    const id = Date.now();
+                    this.items.push({ id, message, type });
+                    setTimeout(() => this.remove(id), 4000);
+                },
+                remove(id) {
+                    this.items = this.items.filter(t => t.id !== id);
+                }
+            });
+        });
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
     <!-- Theme and HTMX Scripts -->
     <script>
-        // Sidebar management
-        const sidebar = document.getElementById('sidebar');
-        const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-        function openSidebar() {
-            sidebar.classList.remove('-translate-x-full');
-            sidebarOverlay.classList.remove('hidden');
-        }
-
-        function closeSidebar() {
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-        }
-
         // Theme management
         const html = document.documentElement;
         const themeToggle = document.getElementById('theme-toggle');
@@ -294,29 +317,10 @@
             evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
         });
 
-        function showToast(message, type) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const bgClass = type === 'success' ? 'bg-green-100 dark:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400' :
-                           type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400' :
-                           type === 'error' ? 'bg-red-100 dark:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400' :
-                           'bg-blue-100 dark:bg-blue-500/10 border-blue-500 text-blue-700 dark:text-blue-400';
-            toast.className = `flex justify-between items-center p-4 rounded-lg border shadow-lg ${bgClass}`;
-            toast.innerHTML = `
-                <span>${message}</span>
-                <button class="text-xl opacity-70 hover:opacity-100 ml-4" onclick="this.parentElement.remove()">×</button>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.3s';
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
+        // Toast helper — delegates to Alpine store
+        function showToast(message, type = 'info') {
+            Alpine.store('toasts').add(message, type);
         }
-
-        document.querySelectorAll('.message-close').forEach(btn => {
-            btn.addEventListener('click', () => btn.parentElement.remove());
-        });
     </script>
 
     {% block extra_js %}{% endblock %}

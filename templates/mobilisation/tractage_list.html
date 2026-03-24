@@ -47,7 +47,7 @@
                 {% for tractage in tractages %}
                 <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors">
                     <td class="px-4 py-3">
-                        <div class="font-medium">{{ tractage.label }}</div>
+                        <div class="font-medium">{{ tractage.name }}</div>
                         {% if tractage.address %}
                         <div class="text-xs text-slate-500 dark:text-slate-400">{{ tractage.address }}</div>
                         {% endif %}
@@ -76,16 +76,30 @@
                         </button>
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center justify-center gap-2">
+                        <div class="flex items-center justify-center gap-2" x-data="{ confirm: false }">
                             <a href="{% url 'mobilisation:tractage_edit' pk=tractage.pk %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                                 Modifier
                             </a>
-                            <form method="post" action="{% url 'mobilisation:tractage_delete' pk=tractage.pk %}" onsubmit="return confirm('Supprimer ce lieu ?');">
-                                {% csrf_token %}
-                                <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors">
+                            <template x-if="!confirm">
+                                <button @click="confirm = true"
+                                        class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors">
                                     Suppr.
                                 </button>
-                            </form>
+                            </template>
+                            <template x-if="confirm">
+                                <div class="flex items-center gap-1">
+                                    <form method="post" action="{% url 'mobilisation:tractage_delete' pk=tractage.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-bold rounded bg-red-600 text-white hover:bg-red-700 transition-colors">
+                                            Confirmer
+                                        </button>
+                                    </form>
+                                    <button @click="confirm = false"
+                                            class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-colors">
+                                        Annuler
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </td>
                 </tr>
