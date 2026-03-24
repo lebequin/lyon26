@@ -7,6 +7,7 @@ from .views import (
     BuildingsAPIView,
     BuildingSearchView,
     BuildingDetailView,
+    GeocodeSuggestView,
     VotingDeskListView,
     BuildingListView,
     BuildingCreateView,
@@ -58,6 +59,7 @@ urlpatterns = [
     path('api/strategy/', StrategyAPIView.as_view(), name='strategy_api'),
     path('api/voting-desk-boundaries/', VotingDeskBoundariesAPIView.as_view(), name='voting_desk_boundaries_api'),
     path('api/buildings/search/', BuildingSearchView.as_view(), name='building_search'),
+    path('api/geocode-suggest/', GeocodeSuggestView.as_view(), name='geocode_suggest'),
     path('api/buildings/<int:pk>/', BuildingDetailView.as_view(), name='building_detail'),
     path('api/visit/', VisitCreateAPIView.as_view(), name='visit_create_api'),
     # CSV Exports

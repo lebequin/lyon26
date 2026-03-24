@@ -43,16 +43,60 @@
                        min="0" required>
             </div>
 
+            <!-- Geocoordinate lookup from existing addresses -->
+            <div x-data="{
+                    query: '',
+                    suggestions: [],
+                    open: false,
+                    filled: false,
+                    async search() {
+                        if (this.query.length < 2) { this.suggestions = []; this.open = false; return; }
+                        const r = await fetch('{% url "mobilisation:geocode_suggest" %}?q=' + encodeURIComponent(this.query));
+                        const d = await r.json();
+                        this.suggestions = d.suggestions;
+                        this.open = d.suggestions.length > 0;
+                    },
+                    fill(s) {
+                        document.getElementById('latitude').value = s.latitude;
+                        document.getElementById('longitude').value = s.longitude;
+                        this.query = s.label;
+                        this.open = false;
+                        this.filled = true;
+                    }
+                }" @click.outside="open = false" class="relative">
+                <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">
+                    Copier les coordonnées d'une adresse existante
+                </label>
+                <div class="relative">
+                    <input type="text" x-model.debounce.300ms="query" @input="search()"
+                           class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 pr-8"
+                           placeholder="Rechercher une rue déjà géocodée..."
+                           autocomplete="off">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                </div>
+                <p x-show="filled" class="mt-1 text-xs text-green-600 dark:text-green-400">✓ Coordonnées copiées ci-dessous</p>
+                <div x-show="open"
+                     class="absolute z-50 w-full mt-1 bg-white dark:bg-[#252542] border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    <template x-for="s in suggestions" :key="s.label">
+                        <button type="button" @click="fill(s)"
+                                class="flex items-center justify-between w-full px-3 py-2.5 text-sm text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0">
+                            <span x-text="s.label" class="text-slate-700 dark:text-slate-300"></span>
+                            <span class="text-xs text-slate-400 ml-3 shrink-0" x-text="'📍 ' + s.latitude.toFixed(4) + ', ' + s.longitude.toFixed(4)"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Latitude (optionnel)</label>
-                    <input type="text" name="latitude" value="{% if building.latitude %}{{ building.latitude }}{% endif %}"
+                    <input type="text" name="latitude" id="latitude" value="{% if building.latitude %}{{ building.latitude }}{% endif %}"
                            class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="45.7580">
                 </div>
                 <div>
                     <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Longitude (optionnel)</label>
-                    <input type="text" name="longitude" value="{% if building.longitude %}{{ building.longitude }}{% endif %}"
+                    <input type="text" name="longitude" id="longitude" value="{% if building.longitude %}{{ building.longitude }}{% endif %}"
                            class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="4.8100">
                 </div>

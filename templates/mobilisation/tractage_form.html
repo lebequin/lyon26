@@ -38,12 +38,40 @@
                 </select>
             </div>
 
-            <div>
+            <div x-data="{
+                    suggestions: [],
+                    open: false,
+                    async search(q) {
+                        if (q.length < 2) { this.suggestions = []; this.open = false; return; }
+                        const r = await fetch('{% url "mobilisation:geocode_suggest" %}?q=' + encodeURIComponent(q));
+                        const d = await r.json();
+                        this.suggestions = d.suggestions;
+                        this.open = d.suggestions.length > 0;
+                    },
+                    fill(s) {
+                        this.$refs.addressInput.value = s.label;
+                        document.getElementById('latitude').value = s.latitude;
+                        document.getElementById('longitude').value = s.longitude;
+                        this.open = false;
+                    }
+                }" @click.outside="open = false" class="relative">
                 <label for="address" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Adresse</label>
-                <input type="text" name="address" id="address"
+                <input type="text" name="address" id="address" x-ref="addressInput"
+                       @input.debounce.300ms="search($event.target.value)"
                        class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                        value="{{ tractage.address|default:'' }}"
-                       placeholder="Ex: Place Saint-Jean, Lyon 5e">
+                       placeholder="Ex: Place Saint-Jean, Lyon 5e"
+                       autocomplete="off">
+                <div x-show="open"
+                     class="absolute z-50 w-full mt-1 bg-white dark:bg-[#252542] border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    <template x-for="s in suggestions" :key="s.label">
+                        <button type="button" @click="fill(s)"
+                                class="flex items-center justify-between w-full px-3 py-2.5 text-sm text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0">
+                            <span x-text="s.label" class="text-slate-700 dark:text-slate-300"></span>
+                            <span class="text-xs text-slate-400 ml-3 shrink-0" x-text="'📍 ' + s.latitude.toFixed(4) + ', ' + s.longitude.toFixed(4)"></span>
+                        </button>
+                    </template>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">

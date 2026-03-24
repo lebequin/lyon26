@@ -7,6 +7,7 @@ from .building import (
     BuildingCreateView,
     BuildingVisitsView,
     AddressesListView,
+    GeocodeSuggestView,
 )
 from .visit import (
     VisitCreateAPIView,
