@@ -186,39 +186,6 @@ class BuildingVisitsView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class GeocodeSuggestView(LoginRequiredMixin, View):
-    """JSON API: address autocomplete with lat/lng from existing buildings"""
-
-    def get(self, request):
-        q = request.GET.get('q', '').strip()
-        if len(q) < 2:
-            return JsonResponse({'suggestions': []})
-
-        buildings = Building.objects.filter(
-            Q(street_name__icontains=q) | Q(street_number__icontains=q),
-            latitude__isnull=False,
-            longitude__isnull=False
-        ).order_by('street_name', 'street_number')
-
-        seen = set()
-        suggestions = []
-        for b in buildings:
-            key = (b.street_number, b.street_name)
-            if key not in seen:
-                seen.add(key)
-                suggestions.append({
-                    'label': str(b),
-                    'street_number': b.street_number,
-                    'street_name': b.street_name,
-                    'latitude': b.latitude,
-                    'longitude': b.longitude,
-                })
-                if len(suggestions) >= 10:
-                    break
-
-        return JsonResponse({'suggestions': suggestions})
-
-
 class AddressesListView(LoginRequiredMixin, TemplateView):
     """List of all addresses with filters for targeting"""
     template_name = 'mobilisation/addresses_list.html'
