@@ -1,5 +1,5 @@
 from django import forms
-from .models import Visit
+from ..models import Visit
 
 
 class VisitForm(forms.ModelForm):
