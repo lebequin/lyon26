@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, render, redirect
 
