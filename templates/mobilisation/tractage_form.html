@@ -21,10 +21,10 @@
             {% csrf_token %}
 
             <div>
-                <label for="label" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Nom du lieu *</label>
-                <input type="text" name="label" id="label"
+                <label for="name" class="block font-medium mb-2 text-slate-600 dark:text-slate-400 text-sm">Nom du lieu *</label>
+                <input type="text" name="name" id="name"
                        class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                       value="{{ tractage.label|default:'' }}" required
+                       value="{{ tractage.name|default:'' }}" required
                        placeholder="Ex: Marche Saint-Jean">
             </div>
 
