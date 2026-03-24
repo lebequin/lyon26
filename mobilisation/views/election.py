@@ -59,7 +59,7 @@ class StrategyView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        all_elections = list(Election.objects.all().order_by('year', 'tour'))
+        all_elections = list(Election.objects.all().order_by('year', 'round'))
         context['all_elections'] = all_elections
 
         selected_ids = self.request.GET.getlist('elections')[:3]
@@ -71,15 +71,15 @@ class StrategyView(LoginRequiredMixin, TemplateView):
             context['desk_rows'] = []
             return context
 
-        selected_elections = [e for e in all_elections if e.id_election in selected_ids]
+        selected_elections = [e for e in all_elections if e.election_code in selected_ids]
 
         desks_electors = {
             vd.code: (vd.total_electors or 0)
-            for vd in VotingDesk.objects.annotate(total_electors=Sum('buildings__num_electors'))
+            for vd in VotingDesk.objects.annotate(total_electors=Sum('buildings__elector_count'))
         }
 
         participations = ElectionParticipation.objects.filter(
-            election__id_election__in=selected_ids
+            election__election_code__in=selected_ids
         ).select_related('election', 'voting_desk')
 
         part_index = {}
@@ -87,18 +87,18 @@ class StrategyView(LoginRequiredMixin, TemplateView):
         for p in participations:
             code = p.voting_desk.code
             desk_codes.add(code)
-            part_index.setdefault(code, {})[p.election.id_election] = p.abstention_percent
+            part_index.setdefault(code, {})[p.election.election_code] = p.abstention_percent
 
         nuance_results = NuanceResult.objects.filter(
-            election__id_election__in=selected_ids,
+            election__election_code__in=selected_ids,
             voting_desk__code__in=desk_codes
         ).select_related('election', 'voting_desk', 'nuance')
 
         results_index = {}
         for nr in nuance_results:
             code = nr.voting_desk.code
-            eid = nr.election.id_election
-            results_index.setdefault(code, {}).setdefault(eid, {})[nr.nuance.code] = nr.ratio_voix_exprimes
+            eid = nr.election.election_code
+            results_index.setdefault(code, {}).setdefault(eid, {})[nr.nuance.code] = nr.vote_share
 
         alliances = list(Alliance.objects.prefetch_related('nuances').all())
         nuance_to_alliance = {}
@@ -115,13 +115,13 @@ class StrategyView(LoginRequiredMixin, TemplateView):
             desk = desks.get(desk_code)
             if not desk:
                 continue
-            num_electors = desks_electors.get(desk_code, 0)
+            elector_count = desks_electors.get(desk_code, 0)
 
             elections_data = []
             abs_values = []
 
             for election in selected_elections:
-                eid = election.id_election
+                eid = election.election_code
                 abs_pct = part_index.get(desk_code, {}).get(eid)
                 if abs_pct is None:
                     elections_data.append(None)
@@ -129,7 +129,7 @@ class StrategyView(LoginRequiredMixin, TemplateView):
 
                 abs_values.append(abs_pct)
                 participation = round(100 - abs_pct, 1)
-                reserve_brute = round((abs_pct / 100) * num_electors)
+                reserve_brute = round((abs_pct / 100) * elector_count)
 
                 nuance_scores = results_index.get(desk_code, {}).get(eid, {})
                 seen = set()
@@ -139,8 +139,8 @@ class StrategyView(LoginRequiredMixin, TemplateView):
                     score = sum(nuance_scores.get(n.code, 0) for n in alliance.nuances.all())
                     if score > 0:
                         blocks.append({
-                            'label': alliance.label,
-                            'short': alliance.label[:12],
+                            'label': alliance.name,
+                            'short': alliance.name[:12],
                             'color': alliance.color,
                             'score': round(score, 1),
                             'is_alliance': True,
@@ -188,7 +188,7 @@ class StrategyView(LoginRequiredMixin, TemplateView):
                 abs_values_valid = [e['abstention'] for e in valid]
                 abs_max = max(abs_values_valid)
                 abs_min = min(abs_values_valid)
-                reserve_elastique = round(((abs_max - abs_min) / 100) * num_electors)
+                reserve_elastique = round(((abs_max - abs_min) / 100) * elector_count)
             elif len(valid) == 1:
                 reserve_elastique = valid[0]['reserve_brute']
             else:
@@ -199,7 +199,7 @@ class StrategyView(LoginRequiredMixin, TemplateView):
 
             desk_rows.append({
                 'desk': desk,
-                'num_electors': num_electors,
+                'elector_count': elector_count,
                 'elections_data': elections_data,
                 'delta_participation': delta_participation,
                 'priority_score': priority_score,
@@ -222,14 +222,14 @@ class StrategyView(LoginRequiredMixin, TemplateView):
             context['avg_delta'] = round(sum(deltas) / len(deltas), 1) if deltas else None
             context['nb_bureaux'] = len(desk_rows)
 
-            last_eid = selected_elections[-1].id_election if selected_elections else None
+            last_eid = selected_elections[-1].election_code if selected_elections else None
             total_expressed = 0
             for r in desk_rows:
                 for edata in r['elections_data']:
-                    if edata and edata['election'].id_election == last_eid:
-                        total_expressed += round((edata['participation'] / 100) * r['num_electors'])
+                    if edata and edata['election'].election_code == last_eid:
+                        total_expressed += round((edata['participation'] / 100) * r['elector_count'])
             context['total_expressed'] = total_expressed
-            context['last_election_label'] = selected_elections[-1].label if selected_elections else ''
+            context['last_election_label'] = selected_elections[-1].name if selected_elections else ''
 
         return context
 
@@ -250,14 +250,14 @@ class StrategyAPIView(LoginRequiredMixin, View):
 
         participations = ElectionParticipation.objects.select_related('election', 'voting_desk')
         if election_ids:
-            participations = participations.filter(election__id_election__in=election_ids)
+            participations = participations.filter(election__election_code__in=election_ids)
 
         part_index = {}
         for p in participations:
             code = p.voting_desk.code
             if code not in part_index:
                 part_index[code] = {}
-            part_index[code][p.election.id_election] = p.abstention_percent
+            part_index[code][p.election.election_code] = p.abstention_percent
 
         alliance_index = {}
         if alliance_id:
@@ -269,21 +269,21 @@ class StrategyAPIView(LoginRequiredMixin, View):
                     nuance__code__in=nuance_codes
                 ).select_related('election', 'voting_desk', 'nuance')
                 if election_ids:
-                    results = results.filter(election__id_election__in=election_ids)
+                    results = results.filter(election__election_code__in=election_ids)
 
                 for r in results:
                     code = r.voting_desk.code
-                    eid = r.election.id_election
+                    eid = r.election.election_code
                     if code not in alliance_index:
                         alliance_index[code] = {}
-                    alliance_index[code][eid] = alliance_index[code].get(eid, 0) + r.ratio_voix_exprimes
+                    alliance_index[code][eid] = alliance_index[code].get(eid, 0) + r.vote_share
             except Alliance.DoesNotExist:
                 pass
 
         desks_coverage = {}
         for desk in VotingDesk.objects.annotate(
             total_knocked=Sum('buildings__visits__knocked_doors'),
-            total_electors=Sum('buildings__num_electors'),
+            total_electors=Sum('buildings__elector_count'),
         ):
             electors = desk.total_electors or 0
             knocked = desk.total_knocked or 0

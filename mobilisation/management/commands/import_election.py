@@ -55,18 +55,18 @@ class Command(BaseCommand):
         arr = options['arrondissement']
         dry_run = options['dry_run']
 
-        id_election = f"{year}_{type_el}_{tour}"
+        election_code = f"{year}_{type_el}_{tour}"
         type_label = TYPE_LABELS.get(type_el, type_el.capitalize())
         tour_label = "T1" if tour == 't1' else "T2"
-        label = options['label'] or f"{type_label} {year} {tour_label}"
+        election_name = options['label'] or f"{type_label} {year} {tour_label}"
 
-        self.stdout.write(f"\nImport : {label} ({id_election}) — arr. {arr}")
+        self.stdout.write(f"\nImport : {election_name} ({election_code}) — arr. {arr}")
 
         # --- Fetch participation ---
         self.stdout.write("  Récupération de la participation...")
         params = {
             "id_brut_miom__contains": f"69123_{arr}",
-            "id_election__contains": id_election,
+            "id_election__contains": election_code,  # paramètre API data.gouv.fr
         }
         url = f"{PARTICIPATION_URL}?{urlencode(params)}"
         self.stdout.write(f"  URL: {url}")
@@ -76,7 +76,7 @@ class Command(BaseCommand):
 
         if not resp.text.strip():
             raise CommandError(
-                f"L'API a renvoyé une réponse vide pour '{id_election}'.\n"
+                f"L'API a renvoyé une réponse vide pour '{election_code}'.\n"
                 f"Vérifiez l'identifiant exact sur https://tabular-api.data.gouv.fr/"
                 f"api/resources/b8703c69-a18f-46ab-9e7f-3a8368dcb891/data/csv/"
                 f"?id_brut_miom__contains=69123_{arr}&page_size=5"
@@ -92,7 +92,7 @@ class Command(BaseCommand):
 
         if df_part.empty:
             raise CommandError(
-                f"Aucun bureau trouvé pour '{id_election}' / arrondissement '{arr}'.\n"
+                f"Aucun bureau trouvé pour '{election_code}' / arrondissement '{arr}'.\n"
                 f"Vérifiez le type d'élection (muni, euro, légi, pres) et l'arrondissement."
             )
 
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             columns=["id_election", "id_brut_miom", "nuance", "libelle_abrege_liste", "ratio_voix_exprimes"]
         )
         df_res = df_res[
-            (df_res["id_election"] == id_election) &
+            (df_res["id_election"] == election_code) &  # colonne parquet data.gouv.fr
             (df_res["id_brut_miom"].str.startswith(f"69123_{arr}"))
         ]
         self.stdout.write(f"  {len(df_res)} lignes de résultats par nuance")
@@ -122,12 +122,12 @@ class Command(BaseCommand):
 
         # --- Get or create Election ---
         election, created = Election.objects.get_or_create(
-            id_election=id_election,
+            election_code=election_code,
             defaults={
-                'type_election': type_el,
-                'tour': tour,
+                'election_type': type_el,
+                'round': tour,
                 'year': year,
-                'label': label,
+                'name': election_name,
             }
         )
         action = "créée" if created else "existante"
@@ -164,7 +164,7 @@ class Command(BaseCommand):
                 voting_desk=desk,
                 defaults={
                     'abstention_percent': float(abstention) if abstention == abstention else 0,  # NaN check
-                    'blancs_percent': float(blancs) if blancs == blancs else 0,
+                    'blank_percent': float(blancs) if blancs == blancs else 0,
                 }
             )
             if was_created:
@@ -189,7 +189,7 @@ class Command(BaseCommand):
                 election=election,
                 voting_desk=desk,
                 nuance=nuance,
-                defaults={'ratio_voix_exprimes': float(row['ratio_voix_exprimes'] or 0)}
+                defaults={'vote_share': float(row['ratio_voix_exprimes'] or 0)}  # 'ratio_voix_exprimes' = col. parquet
             )
             if was_created:
                 created_res += 1

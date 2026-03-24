@@ -288,7 +288,7 @@
                     <div>
                         <div class="popup-title">${bldg.address}</div>
                         <div class="popup-stats">
-                            Bureau ${bldg.voting_desk} | ${bldg.num_electors} électeurs<br>
+                            Bureau ${bldg.voting_desk} | ${bldg.elector_count} électeurs<br>
                             Ouvertes: ${bldg.total_open} | Frappées: ${bldg.total_knocked}<br>
                             <strong>Taux d'ouverture: ${bldg.open_rate}%</strong>
                         </div>
@@ -342,7 +342,7 @@
                         <div class="popup-stats">
                             ${t.type_display}${t.voting_desk ? ' | Bureau ' + t.voting_desk : ''}<br>
                             ${t.address ? t.address + '<br>' : ''}
-                            <strong>Tractages: ${t.nb_tractage}</strong>
+                            <strong>Tractages: ${t.count}</strong>
                         </div>
                     </div>
                 `);
@@ -537,7 +537,7 @@
         const formData = new FormData(this);
 
         try {
-            const response = await fetch('{% url "mobilisation:add_visit" %}', {
+            const response = await fetch('{% url "mobilisation:visit_create_api" %}', {
                 method: 'POST',
                 body: formData,
                 headers: {

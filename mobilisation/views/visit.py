@@ -10,8 +10,8 @@ from territory.models import Building
 from ..models import Visit
 
 
-class AddVisitView(LoginRequiredMixin, View):
-    """API endpoint to add a visit"""
+class VisitCreateAPIView(LoginRequiredMixin, View):
+    """API endpoint to add a visit from the dashboard map"""
 
     def post(self, request):
         from django.http import JsonResponse
@@ -21,7 +21,7 @@ class AddVisitView(LoginRequiredMixin, View):
             open_doors = int(request.POST.get('open_doors', 0))
             comment = request.POST.get('comment', '')
             is_finished = request.POST.get('is_finished') == 'on'
-            tour = int(request.POST.get('tour', 2))
+            round_val = int(request.POST.get('tour', 2))
 
             building = get_object_or_404(Building, pk=building_id)
 
@@ -30,7 +30,7 @@ class AddVisitView(LoginRequiredMixin, View):
                 open_doors=open_doors,
                 knocked_doors=knocked_doors,
                 comment=comment,
-                tour=tour
+                round=round_val
             )
 
             if is_finished:
@@ -62,7 +62,7 @@ class VisitCreateView(LoginRequiredMixin, View):
         date = request.POST.get('date')
         comment = request.POST.get('comment', '')
         is_finished = request.POST.get('is_finished') == 'on'
-        tour = int(request.POST.get('tour', 2))
+        round_val = int(request.POST.get('tour', 2))
 
         Visit.objects.create(
             building=building,
@@ -70,14 +70,14 @@ class VisitCreateView(LoginRequiredMixin, View):
             knocked_doors=knocked_doors,
             date=date,
             comment=comment,
-            tour=tour
+            round=round_val
         )
 
         if is_finished:
             building.is_finished = True
             building.save(update_fields=['is_finished'])
 
-        return redirect('mobilisation:building_visits', pk=building_pk)
+        return redirect('mobilisation:building_visit_list', pk=building_pk)
 
 
 class VisitEditView(LoginRequiredMixin, View):
@@ -103,7 +103,7 @@ class VisitEditView(LoginRequiredMixin, View):
         if date_str:
             visit.date = datetime.strptime(date_str, '%Y-%m-%d').date()
         visit.comment = request.POST.get('comment', '')
-        visit.tour = int(request.POST.get('tour', visit.tour))
+        visit.round = int(request.POST.get('tour', visit.round))
         visit.save()
 
         is_finished = request.POST.get('is_finished') == 'on'
@@ -115,8 +115,8 @@ class VisitEditView(LoginRequiredMixin, View):
         if next_url:
             return redirect(next_url)
         if building:
-            return redirect('mobilisation:building_visits', pk=building.pk)
-        return redirect('mobilisation:actions_list')
+            return redirect('mobilisation:building_visit_list', pk=building.pk)
+        return redirect('mobilisation:canvassing_list')
 
 
 class VisitDeleteView(LoginRequiredMixin, View):
@@ -134,11 +134,11 @@ class VisitDeleteView(LoginRequiredMixin, View):
                 building.save(update_fields=['is_finished'])
 
         if building_pk:
-            return redirect('mobilisation:building_visits', pk=building_pk)
+            return redirect('mobilisation:building_visit_list', pk=building_pk)
         return redirect('mobilisation:dashboard')
 
 
-class ActionsListView(LoginRequiredMixin, TemplateView):
+class CanvassingListView(LoginRequiredMixin, TemplateView):
     """List of all visits ordered by date descending"""
     template_name = 'mobilisation/actions_list.html'
 

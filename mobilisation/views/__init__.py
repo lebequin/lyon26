@@ -9,11 +9,11 @@ from .building import (
     AddressesListView,
 )
 from .visit import (
-    AddVisitView,
+    VisitCreateAPIView,
     VisitCreateView,
     VisitEditView,
     VisitDeleteView,
-    ActionsListView,
+    CanvassingListView,
 )
 from .tractage import (
     TractageListView,

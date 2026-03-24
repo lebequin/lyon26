@@ -305,7 +305,7 @@ class Command(BaseCommand):
                         b.street_name,
                         b.voting_desk.code,
                         b.voting_desk.district.name if hasattr(b.voting_desk, "district") else "",
-                        b.num_electors,
+                        b.elector_count,
                         b.latitude or "",
                         b.longitude or "",
                     ])

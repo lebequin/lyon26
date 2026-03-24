@@ -1,4 +1,4 @@
-<span class="font-semibold text-primary-600 dark:text-primary-400">{{ tractage.nb_tractage }}</span>
+<span class="font-semibold text-primary-600 dark:text-primary-400">{{ tractage.count }}</span>
 <button hx-post="{% url 'mobilisation:tractage_increment' pk=tractage.pk %}"
         hx-target="#tractage-count-{{ tractage.pk }}"
         hx-swap="innerHTML"

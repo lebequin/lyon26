@@ -54,20 +54,20 @@
                     </td>
                     <td class="px-4 py-3">
                         <span class="inline-block px-2 py-1 text-xs font-medium rounded-full
-                            {% if tractage.type_tractage == 'marche' %}bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400
-                            {% elif tractage.type_tractage == 'metro' %}bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400
-                            {% elif tractage.type_tractage == 'bus' %}bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400
-                            {% elif tractage.type_tractage == 'commerce' %}bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400
-                            {% elif tractage.type_tractage == 'ecole' %}bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400
+                            {% if tractage.location_type == 'marche' %}bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400
+                            {% elif tractage.location_type == 'metro' %}bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400
+                            {% elif tractage.location_type == 'bus' %}bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400
+                            {% elif tractage.location_type == 'commerce' %}bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400
+                            {% elif tractage.location_type == 'ecole' %}bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400
                             {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400{% endif %}">
-                            {{ tractage.get_type_tractage_display }}
+                            {{ tractage.get_location_type_display }}
                         </span>
                     </td>
                     <td class="px-4 py-3 hidden sm:table-cell text-slate-600 dark:text-slate-300">
                         {% if tractage.voting_desk %}{{ tractage.voting_desk.code }}{% else %}-{% endif %}
                     </td>
                     <td class="px-4 py-3 text-right" id="tractage-count-{{ tractage.pk }}">
-                        <span class="font-semibold text-primary-600 dark:text-primary-400">{{ tractage.nb_tractage }}</span>
+                        <span class="font-semibold text-primary-600 dark:text-primary-400">{{ tractage.count }}</span>
                         <button hx-post="{% url 'mobilisation:tractage_increment' pk=tractage.pk %}"
                                 hx-target="#tractage-count-{{ tractage.pk }}"
                                 hx-swap="innerHTML"

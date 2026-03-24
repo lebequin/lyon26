@@ -22,7 +22,7 @@ class Building(models.Model):
     """
     street_number = models.CharField(max_length=20, verbose_name="Numéro")
     street_name = models.CharField(max_length=200, verbose_name="Rue")
-    num_electors = models.PositiveIntegerField(default=0, verbose_name="Nombre d'électeurs")
+    elector_count = models.PositiveIntegerField(default=0, verbose_name="Nombre d'électeurs")
     voting_desk = models.ForeignKey(
         VotingDesk,
         on_delete=models.CASCADE,

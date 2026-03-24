@@ -16,7 +16,7 @@ class TractageListView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tractages'] = Tractage.objects.select_related('voting_desk').all()
-        context['total_tractages'] = Tractage.objects.aggregate(total=Sum('nb_tractage'))['total'] or 0
+        context['total_tractages'] = Tractage.objects.aggregate(total=Sum('count'))['total'] or 0
         context['type_choices'] = Tractage.TYPE_CHOICES
         return context
 
@@ -35,9 +35,9 @@ class TractageCreateView(LoginRequiredMixin, View):
 
     def post(self, request):
         try:
-            nb_tractage = int(request.POST.get('nb_tractage', 0) or 0)
+            count = int(request.POST.get('count', 0) or 0)
         except (ValueError, TypeError):
-            nb_tractage = 0
+            count = 0
 
         latitude_raw = request.POST.get('latitude') or None
         longitude_raw = request.POST.get('longitude') or None
@@ -48,13 +48,13 @@ class TractageCreateView(LoginRequiredMixin, View):
             latitude = longitude = None
 
         Tractage.objects.create(
-            label=request.POST.get('label', ''),
+            name=request.POST.get('name', ''),
             address=request.POST.get('address', ''),
             latitude=latitude,
             longitude=longitude,
-            nb_tractage=nb_tractage,
+            count=count,
             voting_desk_id=request.POST.get('voting_desk') or None,
-            type_tractage=request.POST.get('type_tractage', 'autre')
+            location_type=request.POST.get('location_type', 'autre')
         )
         return redirect('mobilisation:tractage_list')
 
@@ -74,7 +74,7 @@ class TractageEditView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         tractage = get_object_or_404(Tractage, pk=pk)
-        tractage.label = request.POST.get('label', '')
+        tractage.name = request.POST.get('name', '')
         tractage.address = request.POST.get('address', '')
 
         latitude_raw = request.POST.get('latitude') or None
@@ -86,12 +86,12 @@ class TractageEditView(LoginRequiredMixin, View):
             tractage.latitude = tractage.longitude = None
 
         try:
-            tractage.nb_tractage = int(request.POST.get('nb_tractage', 0) or 0)
+            tractage.count = int(request.POST.get('count', 0) or 0)
         except (ValueError, TypeError):
-            tractage.nb_tractage = 0
+            tractage.count = 0
 
         tractage.voting_desk_id = request.POST.get('voting_desk') or None
-        tractage.type_tractage = request.POST.get('type_tractage', 'autre')
+        tractage.location_type = request.POST.get('location_type', 'autre')
         tractage.save()
         return redirect('mobilisation:tractage_list')
 
@@ -106,12 +106,12 @@ class TractageDeleteView(LoginRequiredMixin, View):
 
 
 class TractageIncrementView(LoginRequiredMixin, View):
-    """Increment nb_tractage by 1"""
+    """Increment count by 1"""
 
     def post(self, request, pk):
         tractage = get_object_or_404(Tractage, pk=pk)
-        tractage.nb_tractage += 1
-        tractage.save(update_fields=['nb_tractage'])
+        tractage.count += 1
+        tractage.save(update_fields=['count'])
         return render(request, 'mobilisation/partials/tractage_count.html', {'tractage': tractage})
 
 
@@ -128,13 +128,13 @@ class TractageAPIView(LoginRequiredMixin, View):
         for t in tractages:
             data.append({
                 'id': t.pk,
-                'label': t.label,
+                'name': t.name,
                 'address': t.address,
                 'latitude': t.latitude,
                 'longitude': t.longitude,
-                'nb_tractage': t.nb_tractage,
-                'type': t.type_tractage,
-                'type_display': t.get_type_tractage_display(),
+                'count': t.count,
+                'type': t.location_type,
+                'type_display': t.get_location_type_display(),
                 'voting_desk': t.voting_desk.code if t.voting_desk else None,
             })
 

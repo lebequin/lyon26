@@ -14,11 +14,11 @@ class Tractage(models.Model):
         ('autre', 'Autre'),
     ]
 
-    label = models.CharField(max_length=200, verbose_name="Nom du lieu")
+    name = models.CharField(max_length=200, verbose_name="Nom du lieu")
     address = models.CharField(max_length=300, blank=True, default="", verbose_name="Adresse")
     latitude = models.FloatField(null=True, blank=True, verbose_name="Latitude")
     longitude = models.FloatField(null=True, blank=True, verbose_name="Longitude")
-    nb_tractage = models.PositiveIntegerField(default=0, verbose_name="Nombre de tractages")
+    count = models.PositiveIntegerField(default=0, verbose_name="Nombre de tractages")
     voting_desk = models.ForeignKey(
         'territory.VotingDesk',
         on_delete=models.SET_NULL,
@@ -27,7 +27,7 @@ class Tractage(models.Model):
         related_name='tractages',
         verbose_name="Bureau de vote"
     )
-    type_tractage = models.CharField(
+    location_type = models.CharField(
         max_length=20,
         choices=TYPE_CHOICES,
         default='autre',
@@ -39,7 +39,7 @@ class Tractage(models.Model):
     class Meta:
         verbose_name = "Tractage"
         verbose_name_plural = "Tractages"
-        ordering = ['-nb_tractage', 'label']
+        ordering = ['-count', 'name']
 
     def __str__(self):
-        return self.label
+        return self.name

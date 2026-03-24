@@ -57,11 +57,11 @@ class VisitAdmin(ImportExportModelAdmin):
 @admin.register(Tractage)
 class TractageAdmin(ImportExportModelAdmin):
     resource_classes = [TractageResource]
-    list_display = ('label', 'type_tractage', 'voting_desk', 'nb_tractage', 'address')
-    list_filter = ('type_tractage', 'voting_desk')
-    search_fields = ('label', 'address')
-    list_editable = ('nb_tractage',)
-    ordering = ('-nb_tractage', 'label')
+    list_display = ('name', 'location_type', 'voting_desk', 'count', 'address')
+    list_filter = ('location_type', 'voting_desk')
+    search_fields = ('name', 'address')
+    list_editable = ('count',)
+    ordering = ('-count', 'name')
 
 
 @admin.register(ElectionResult)
@@ -192,25 +192,25 @@ class ElectionResultAdmin(ExportMixin, admin.ModelAdmin):
 class NuanceResultInline(admin.TabularInline):
     model = NuanceResult
     extra = 0
-    fields = ('nuance', 'ratio_voix_exprimes')
+    fields = ('nuance', 'vote_share')
 
 
 @admin.register(Election)
 class ElectionAdmin(admin.ModelAdmin):
-    list_display = ('label', 'type_election', 'tour', 'year', 'id_election')
-    list_filter = ('type_election', 'tour', 'year')
-    ordering = ('-year', 'type_election', 'tour')
+    list_display = ('name', 'election_type', 'round', 'year', 'election_code')
+    list_filter = ('election_type', 'round', 'year')
+    ordering = ('-year', 'election_type', 'round')
 
 
 @admin.register(Nuance)
 class NuanceAdmin(admin.ModelAdmin):
-    list_display = ('code', 'label', 'color')
+    list_display = ('code', 'name', 'color')
     search_fields = ('code', 'label')
 
 
 @admin.register(Alliance)
 class AllianceAdmin(admin.ModelAdmin):
-    list_display = ('label', 'color', 'nuance_list')
+    list_display = ('name', 'color', 'nuance_list')
     filter_horizontal = ('nuances',)
 
     def nuance_list(self, obj):
@@ -220,13 +220,13 @@ class AllianceAdmin(admin.ModelAdmin):
 
 @admin.register(ElectionParticipation)
 class ElectionParticipationAdmin(admin.ModelAdmin):
-    list_display = ('election', 'voting_desk', 'abstention_percent', 'blancs_percent')
+    list_display = ('election', 'voting_desk', 'abstention_percent', 'blank_percent')
     list_filter = ('election',)
     search_fields = ('voting_desk__code',)
 
 
 @admin.register(NuanceResult)
 class NuanceResultAdmin(admin.ModelAdmin):
-    list_display = ('election', 'voting_desk', 'nuance', 'ratio_voix_exprimes')
+    list_display = ('election', 'voting_desk', 'nuance', 'vote_share')
     list_filter = ('election', 'nuance')
     search_fields = ('voting_desk__code',)

@@ -14,8 +14,8 @@ class VisitResource(resources.ModelResource):
 
     class Meta:
         model = Visit
-        fields = ('id', 'building', 'tour', 'date', 'open_doors', 'knocked_doors', 'comment')
-        export_order = ('id', 'building', 'tour', 'date', 'open_doors', 'knocked_doors', 'comment')
+        fields = ('id', 'building', 'round', 'date', 'open_doors', 'knocked_doors', 'comment')
+        export_order = ('id', 'building', 'round', 'date', 'open_doors', 'knocked_doors', 'comment')
         import_id_fields = ('id',)
 
 
@@ -28,11 +28,11 @@ class TractageResource(resources.ModelResource):
 
     class Meta:
         model = Tractage
-        fields = ('id', 'label', 'type_tractage', 'address', 'voting_desk',
-                  'nb_tractage', 'latitude', 'longitude')
-        export_order = ('label', 'type_tractage', 'address', 'voting_desk',
-                        'nb_tractage', 'latitude', 'longitude')
-        import_id_fields = ('label',)
+        fields = ('id', 'name', 'location_type', 'address', 'voting_desk',
+                  'count', 'latitude', 'longitude')
+        export_order = ('name', 'location_type', 'address', 'voting_desk',
+                        'count', 'latitude', 'longitude')
+        import_id_fields = ('name',)
 
 
 class ElectionResultExportResource(resources.ModelResource):

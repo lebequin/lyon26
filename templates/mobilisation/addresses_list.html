@@ -125,7 +125,7 @@
                 {% for building in buildings %}
                 <tr class="hover:bg-slate-50 dark:hover:bg-[#252542] transition-colors {% if building.is_finished %}opacity-60{% endif %}">
                     <td class="px-4 py-3">
-                        <a href="{% url 'mobilisation:building_visits' pk=building.pk %}" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">
+                        <a href="{% url 'mobilisation:building_visit_list' pk=building.pk %}" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">
                             {{ building.street_number }} {{ building.street_name }}
                         </a>
                     </td>
@@ -149,7 +149,7 @@
                         <span class="text-orange-500" title="Logement social">&#x2713;</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-right font-medium">{{ building.num_electors }}</td>
+                    <td class="px-4 py-3 text-right font-medium">{{ building.elector_count }}</td>
                     <td class="px-4 py-3 text-right">{{ building.total_open }}</td>
                     <td class="px-4 py-3 text-right">{{ building.total_knocked }}</td>
                     <td class="px-4 py-3 text-center">

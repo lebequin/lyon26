@@ -27,7 +27,7 @@
             Filtrer
         </button>
         {% if query %}
-        <a href="{% url 'mobilisation:actions_list' %}" class="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+        <a href="{% url 'mobilisation:canvassing_list' %}" class="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
             Effacer
         </a>
         {% endif %}
@@ -63,7 +63,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if item.building %}
-                        <a href="{% url 'mobilisation:building_visits' pk=item.building.pk %}" class="text-primary-600 dark:text-primary-400 hover:underline">
+                        <a href="{% url 'mobilisation:building_visit_list' pk=item.building.pk %}" class="text-primary-600 dark:text-primary-400 hover:underline">
                             {{ item.address }}
                         </a>
                         {% else %}
@@ -85,7 +85,7 @@
                     {% if can_edit %}
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center gap-2">
-                            <a href="{% url 'mobilisation:visit_edit' pk=item.visit.pk %}?next={% if query %}{% url 'mobilisation:actions_list' %}%3Fq%3D{{ query|urlencode }}{% else %}{% url 'mobilisation:actions_list' %}{% endif %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                            <a href="{% url 'mobilisation:visit_edit' pk=item.visit.pk %}?next={% if query %}{% url 'mobilisation:canvassing_list' %}%3Fq%3D{{ query|urlencode }}{% else %}{% url 'mobilisation:canvassing_list' %}{% endif %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                                 Modifier
                             </a>
                             <form method="post" action="{% url 'mobilisation:visit_delete' pk=item.visit.pk %}" onsubmit="return confirm('Supprimer cette visite ?');">

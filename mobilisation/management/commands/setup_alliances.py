@@ -80,14 +80,14 @@ class Command(BaseCommand):
         for a_data in ALLIANCES:
             nuances = Nuance.objects.filter(code__in=a_data['nuances'])
             alliance, created = Alliance.objects.update_or_create(
-                label=a_data['label'],
+                name=a_data['label'],
                 defaults={'color': a_data['color']}
             )
             alliance.nuances.set(nuances)
 
             nuance_codes = list(nuances.values_list('code', flat=True))
             status = "créée" if created else "mise à jour"
-            self.stdout.write(f"  Alliance {status} : {alliance.label} → {nuance_codes}")
+            self.stdout.write(f"  Alliance {status} : {alliance.name} → {nuance_codes}")
 
             if created:
                 created_a += 1

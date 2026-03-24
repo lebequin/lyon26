@@ -16,7 +16,7 @@ class BuildingsAPIView(LoginRequiredMixin, View):
 
     def get(self, request):
         tour = int(request.GET.get('tour', 2))
-        tour_filter = Q(visits__tour=tour)
+        tour_filter = Q(visits__round=tour)
         buildings = Building.objects.filter(
             latitude__isnull=False,
             longitude__isnull=False
@@ -37,7 +37,7 @@ class BuildingsAPIView(LoginRequiredMixin, View):
                 'address': str(bldg),
                 'latitude': bldg.latitude,
                 'longitude': bldg.longitude,
-                'num_electors': bldg.num_electors,
+                'elector_count': bldg.elector_count,
                 'voting_desk': bldg.voting_desk.code,
                 'is_finished': bldg.is_finished,
                 'total_open': total_open,
@@ -61,7 +61,7 @@ class BuildingSearchView(LoginRequiredMixin, View):
             Q(street_name__icontains=query) | Q(street_number__icontains=query),
             latitude__isnull=False,
             longitude__isnull=False
-        ).select_related('voting_desk').with_visit_stats().order_by('-num_electors', 'street_name', 'street_number')
+        ).select_related('voting_desk').with_visit_stats().order_by('-elector_count', 'street_name', 'street_number')
 
         for bldg in buildings:
             bldg.total_open = bldg.total_open or 0
@@ -101,12 +101,12 @@ class BuildingListView(LoginRequiredMixin, TemplateView):
 
         buildings = Building.objects.filter(
             voting_desk=voting_desk
-        ).with_visit_stats().order_by('-num_electors')
+        ).with_visit_stats().order_by('-elector_count')
 
         context['buildings'] = buildings
 
         totals = Building.objects.filter(voting_desk=voting_desk).aggregate(
-            total_electors=Sum('num_electors'),
+            total_electors=Sum('elector_count'),
             total_knocked=Sum('visits__knocked_doors'),
             total_open=Sum('visits__open_doors')
         )
@@ -138,9 +138,9 @@ class BuildingCreateView(LoginRequiredMixin, View):
         voting_desk = get_object_or_404(VotingDesk, code=voting_desk_code)
 
         try:
-            num_electors = int(request.POST.get('num_electors', 0) or 0)
+            elector_count = int(request.POST.get('elector_count', 0) or 0)
         except (ValueError, TypeError):
-            num_electors = 0
+            elector_count = 0
 
         latitude_raw = request.POST.get('latitude') or None
         longitude_raw = request.POST.get('longitude') or None
@@ -153,7 +153,7 @@ class BuildingCreateView(LoginRequiredMixin, View):
         Building.objects.create(
             street_number=request.POST.get('street_number', ''),
             street_name=request.POST.get('street_name', ''),
-            num_electors=num_electors,
+            elector_count=elector_count,
             voting_desk=voting_desk,
             latitude=latitude,
             longitude=longitude,
@@ -198,10 +198,10 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         ).with_visit_stats()
 
         f = BuildingFilter(self.request.GET, queryset=base_qs)
-        buildings = f.qs.order_by('-num_electors', 'street_name', 'street_number')
+        buildings = f.qs.order_by('-elector_count', 'street_name', 'street_number')
 
         total_buildings = buildings.count()
-        total_electors = buildings.aggregate(total=Sum('num_electors'))['total'] or 0
+        total_electors = buildings.aggregate(total=Sum('elector_count'))['total'] or 0
         context['total_buildings'] = total_buildings
         context['total_electors'] = total_electors
         context['avg_electors'] = round(total_electors / total_buildings, 1) if total_buildings > 0 else 0

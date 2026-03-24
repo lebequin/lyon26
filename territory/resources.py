@@ -27,8 +27,8 @@ class BuildingResource(resources.ModelResource):
 
     class Meta:
         model = Building
-        fields = ('id', 'voting_desk', 'street_number', 'street_name', 'num_electors',
+        fields = ('id', 'voting_desk', 'street_number', 'street_name', 'elector_count',
                   'is_hlm', 'is_finished', 'latitude', 'longitude')
-        export_order = ('voting_desk', 'street_number', 'street_name', 'num_electors',
+        export_order = ('voting_desk', 'street_number', 'street_name', 'elector_count',
                         'is_hlm', 'is_finished', 'latitude', 'longitude')
         import_id_fields = ('voting_desk', 'street_number', 'street_name')

@@ -7,7 +7,7 @@ class Visit(models.Model):
     """
     Represents a door-to-door visit session for a single building.
     """
-    TOUR_CHOICES = [(1, '1er tour'), (2, '2nd tour')]
+    ROUND_CHOICES = [(1, '1er tour'), (2, '2nd tour')]
 
     building = models.ForeignKey(
         'territory.Building',
@@ -17,8 +17,8 @@ class Visit(models.Model):
         related_name='visits',
         verbose_name="Immeuble"
     )
-    tour = models.PositiveSmallIntegerField(
-        choices=TOUR_CHOICES,
+    round = models.PositiveSmallIntegerField(
+        choices=ROUND_CHOICES,
         default=2,
         verbose_name="Tour"
     )

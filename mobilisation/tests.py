@@ -79,13 +79,13 @@ class VisitModelTests(TestCase):
         self.building1 = Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=self.voting_desk
         )
         self.building2 = Building.objects.create(
             street_number="14",
             street_name="Rue de la République",
-            num_electors=30,
+            elector_count=30,
             voting_desk=self.voting_desk
         )
 

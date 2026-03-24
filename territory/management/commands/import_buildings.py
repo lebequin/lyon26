@@ -125,20 +125,20 @@ class Command(BaseCommand):
             for row in reader:
                 street_number = row.get('N° rue', '').strip()
                 street_name = row.get('Nom rue', '').strip()
-                num_electors_str = row.get('Nb electeurs', '0').strip()
+                elector_count_str = row.get('Nb electeurs', '0').strip()
 
                 # Parse electors count
                 try:
-                    num_electors = int(num_electors_str) if num_electors_str else 0
+                    elector_count = int(elector_count_str) if elector_count_str else 0
                 except ValueError:
-                    num_electors = 0
+                    elector_count = 0
 
                 if not street_number or not street_name:
                     continue
 
                 if dry_run:
                     self.stdout.write(
-                        f'  Would import: {street_number} {street_name} ({num_electors} electors)'
+                        f'  Would import: {street_number} {street_name} ({elector_count} electors)'
                     )
                     created_count += 1
                 else:
@@ -147,7 +147,7 @@ class Command(BaseCommand):
                             voting_desk=voting_desk,
                             street_number=street_number,
                             street_name=street_name,
-                            defaults={'num_electors': num_electors}
+                            defaults={'elector_count': elector_count}
                         )
                         if created:
                             created_count += 1

@@ -20,7 +20,7 @@ class DistrictAdmin(admin.ModelAdmin):
         return super().get_queryset(request).annotate(
             _voting_desk_count=Count('voting_desks', distinct=True),
             _building_count=Count('voting_desks__buildings', distinct=True),
-            _total_electors=Sum('voting_desks__buildings__num_electors'),
+            _total_electors=Sum('voting_desks__buildings__elector_count'),
         )
 
     def voting_desk_count(self, obj):
@@ -52,7 +52,7 @@ class VotingDeskAdmin(ImportExportModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
             _building_count=Count('buildings', distinct=True),
-            _total_electors=Sum('buildings__num_electors'),
+            _total_electors=Sum('buildings__elector_count'),
         )
 
     def building_count(self, obj):
@@ -70,7 +70,7 @@ class VotingDeskAdmin(ImportExportModelAdmin):
 class BuildingAdmin(ImportExportModelAdmin):
     resource_classes = [BuildingResource]
     list_display = (
-        '__str__', 'voting_desk', 'num_electors', 'is_hlm', 'is_finished',
+        '__str__', 'voting_desk', 'elector_count', 'is_hlm', 'is_finished',
         'visit_count', 'total_knocked', 'total_open'
     )
     list_filter = ('is_hlm', 'is_finished', 'voting_desk__district', 'voting_desk')

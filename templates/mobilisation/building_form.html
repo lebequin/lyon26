@@ -38,7 +38,7 @@
 
             <div>
                 <label class="block font-medium mb-1 text-slate-600 dark:text-slate-400 text-sm">Nombre d'electeurs</label>
-                <input type="number" name="num_electors" value="{% if building %}{{ building.num_electors }}{% else %}0{% endif %}"
+                <input type="number" name="elector_count" value="{% if building %}{{ building.elector_count }}{% else %}0{% endif %}"
                        class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#252542] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                        min="0" required>
             </div>

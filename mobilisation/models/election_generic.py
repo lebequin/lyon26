@@ -11,34 +11,34 @@ class Election(models.Model):
         ('cant', 'Cantonales'),
         ('regi', 'Régionales'),
     ]
-    TOUR_CHOICES = [
+    ROUND_CHOICES = [
         ('t1', 'Tour 1'),
         ('t2', 'Tour 2'),
     ]
 
-    id_election = models.CharField(
+    election_code = models.CharField(
         max_length=50, unique=True,
-        verbose_name="ID élection",
+        verbose_name="Code élection",
         help_text="Format: 2020_muni_t1"
     )
-    type_election = models.CharField(max_length=10, choices=TYPE_CHOICES, verbose_name="Type")
-    tour = models.CharField(max_length=2, choices=TOUR_CHOICES, verbose_name="Tour")
+    election_type = models.CharField(max_length=10, choices=TYPE_CHOICES, verbose_name="Type")
+    round = models.CharField(max_length=2, choices=ROUND_CHOICES, verbose_name="Tour")
     year = models.PositiveIntegerField(verbose_name="Année")
-    label = models.CharField(max_length=100, verbose_name="Libellé")
+    name = models.CharField(max_length=100, verbose_name="Libellé")
 
     class Meta:
         verbose_name = "Élection"
         verbose_name_plural = "Élections"
-        ordering = ['-year', 'type_election', 'tour']
+        ordering = ['-year', 'election_type', 'round']
 
     def __str__(self):
-        return self.label
+        return self.name
 
 
 class Nuance(models.Model):
     """Official party nuance code from the government data."""
     code = models.CharField(max_length=20, unique=True, verbose_name="Code nuance")
-    label = models.CharField(max_length=200, verbose_name="Libellé")
+    name = models.CharField(max_length=200, verbose_name="Libellé")
     color = models.CharField(max_length=7, default="#6366f1", verbose_name="Couleur (hex)")
 
     class Meta:
@@ -47,7 +47,7 @@ class Nuance(models.Model):
         ordering = ['code']
 
     def __str__(self):
-        return f"{self.code} – {self.label}"
+        return f"{self.code} – {self.name}"
 
 
 class Alliance(models.Model):
@@ -55,7 +55,7 @@ class Alliance(models.Model):
     Grouping of nuances to compare across elections.
     e.g. "Gauche unie" = LUG + LEXG + LFG + ...
     """
-    label = models.CharField(max_length=100, verbose_name="Libellé")
+    name = models.CharField(max_length=100, verbose_name="Libellé")
     nuances = models.ManyToManyField(
         Nuance,
         related_name='alliances',
@@ -67,10 +67,10 @@ class Alliance(models.Model):
     class Meta:
         verbose_name = "Alliance"
         verbose_name_plural = "Alliances"
-        ordering = ['label']
+        ordering = ['name']
 
     def __str__(self):
-        return self.label
+        return self.name
 
 
 class ElectionParticipation(models.Model):
@@ -90,7 +90,7 @@ class ElectionParticipation(models.Model):
         verbose_name="Abstention (%)",
         help_text="ratio_abstentions_inscrits"
     )
-    blancs_percent = models.FloatField(
+    blank_percent = models.FloatField(
         default=0,
         verbose_name="Blancs/nuls (% votants)",
         help_text="ratio_blancs_votants"
@@ -127,7 +127,7 @@ class NuanceResult(models.Model):
         related_name='results',
         verbose_name="Nuance"
     )
-    ratio_voix_exprimes = models.FloatField(
+    vote_share = models.FloatField(
         default=0,
         verbose_name="% voix exprimées"
     )
@@ -136,7 +136,7 @@ class NuanceResult(models.Model):
         verbose_name = "Résultat par nuance"
         verbose_name_plural = "Résultats par nuance"
         unique_together = [['election', 'voting_desk', 'nuance']]
-        ordering = ['election', 'voting_desk__code', '-ratio_voix_exprimes']
+        ordering = ['election', 'voting_desk__code', '-vote_share']
 
     def __str__(self):
-        return f"{self.election} – {self.voting_desk.code} – {self.nuance.code}: {self.ratio_voix_exprimes}%"
+        return f"{self.election} – {self.voting_desk.code} – {self.nuance.code}: {self.vote_share}%"

@@ -37,29 +37,29 @@ class Command(BaseCommand):
         if not meta or meta[0] != '#election':
             raise CommandError("Ligne de métadonnées manquante (doit commencer par #election).")
 
-        id_election = meta[1]
-        label = meta[2]
+        election_code = meta[1]
+        election_name = meta[2]
         type_el = meta[3]
         tour = meta[4]
         year = meta[5]
 
-        self.stdout.write(f"Election : {label} ({id_election})")
+        self.stdout.write(f"Election : {election_name} ({election_code})")
 
         # --- Get or create Election ---
         if not dry_run:
             election, created = Election.objects.update_or_create(
-                id_election=id_election,
+                election_code=election_code,
                 defaults={
-                    'label': label,
-                    'type_election': type_el,
-                    'tour': tour,
+                    'name': election_name,
+                    'election_type': type_el,
+                    'round': tour,
                     'year': int(year),
                 }
             )
             action = "créée" if created else "mise à jour"
             self.stdout.write(f"  Election {action} : {election}")
         else:
-            self.stdout.write(f"  [dry-run] Election : {id_election}")
+            self.stdout.write(f"  [dry-run] Election : {election_code}")
 
         # --- Process data rows (skip header row at index 1) ---
         data_rows = rows[2:]  # skip #election meta + header
@@ -91,7 +91,7 @@ class Command(BaseCommand):
                         voting_desk=desk,
                         defaults={
                             'abstention_percent': abs_pct,
-                            'blancs_percent': blancs_pct,
+                            'blank_percent': blancs_pct,
                         }
                     )
                     if created:
@@ -112,13 +112,13 @@ class Command(BaseCommand):
                 if not dry_run:
                     nuance, _ = Nuance.objects.get_or_create(
                         code=nuance_code,
-                        defaults={'label': nuance_label, 'color': '#6b7280'}
+                        defaults={'name': nuance_label, 'color': '#6b7280'}
                     )
                     _, created = NuanceResult.objects.update_or_create(
                         election=election,
                         voting_desk=desk,
                         nuance=nuance,
-                        defaults={'ratio_voix_exprimes': score}
+                        defaults={'vote_share': score}
                     )
                     if created:
                         res_created += 1
@@ -135,4 +135,4 @@ class Command(BaseCommand):
         prefix = "[dry-run] " if dry_run else ""
         self.stdout.write(f"  {prefix}Participation : {part_created} créées, {part_updated} mises à jour")
         self.stdout.write(f"  {prefix}Résultats : {res_created} créés, {res_updated} mis à jour")
-        self.stdout.write(self.style.SUCCESS(f"\n  Import terminé : {id_election}"))
+        self.stdout.write(self.style.SUCCESS(f"\n  Import terminé : {election_code}"))

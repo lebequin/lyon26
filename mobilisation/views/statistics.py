@@ -69,13 +69,13 @@ class StatisticsView(LoginRequiredMixin, TemplateView):
             context['open_rate'] = 0
 
         tractage_totals = Tractage.objects.aggregate(
-            total_tractages=Sum('nb_tractage')
+            total_tractages=Sum('count')
         )
         context['total_tractages'] = tractage_totals['total_tractages'] or 0
         context['total_tractage_locations'] = Tractage.objects.count()
 
-        tractage_by_type = Tractage.objects.values('type_tractage').annotate(
-            total=Sum('nb_tractage')
+        tractage_by_type = Tractage.objects.values('location_type').annotate(
+            total=Sum('count')
         ).order_by('-total')
 
         type_labels = []
@@ -83,7 +83,7 @@ class StatisticsView(LoginRequiredMixin, TemplateView):
         type_display_map = dict(Tractage.TYPE_CHOICES)
 
         for entry in tractage_by_type:
-            type_labels.append(type_display_map.get(entry['type_tractage'], entry['type_tractage']))
+            type_labels.append(type_display_map.get(entry['location_type'], entry['location_type']))
             type_data.append(entry['total'] or 0)
 
         context['tractage_type_labels'] = type_labels

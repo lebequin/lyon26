@@ -13,7 +13,7 @@ class VotingDeskListView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         voting_desks = VotingDesk.objects.annotate(
-            total_electors=Sum('buildings__num_electors'),
+            total_electors=Sum('buildings__elector_count'),
             total_knocked=Sum('buildings__visits__knocked_doors'),
             total_open=Sum('buildings__visits__open_doors'),
             building_count=Count('buildings')
@@ -29,7 +29,7 @@ class VotingDeskListView(LoginRequiredMixin, TemplateView):
         context['voting_desks'] = desks_with_coverage
 
         totals = Building.objects.aggregate(
-            total_electors=Sum('num_electors'),
+            total_electors=Sum('elector_count'),
             total_knocked=Sum('visits__knocked_doors'),
             total_open=Sum('visits__open_doors')
         )

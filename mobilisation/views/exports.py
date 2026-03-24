@@ -81,7 +81,7 @@ class ExportVotingDesksCSV(BaseCSVExportView):
     def write_csv(self, writer):
         writer.writerow(['Code', 'Nom', 'Adresse', 'Priorite', 'Nb Immeubles', 'Nb Electeurs', 'Portes Frappees', 'Portes Ouvertes', 'Couverture %'])
         voting_desks = VotingDesk.objects.annotate(
-            total_electors=Sum('buildings__num_electors'),
+            total_electors=Sum('buildings__elector_count'),
             total_knocked=Sum('buildings__visits__knocked_doors'),
             total_open=Sum('buildings__visits__open_doors'),
             building_count=Count('buildings')
@@ -117,7 +117,7 @@ class ExportBuildingsCSV(BaseCSVExportView):
                 bldg.voting_desk.code,
                 bldg.street_number,
                 bldg.street_name,
-                bldg.num_electors,
+                bldg.elector_count,
                 bldg.total_knocked or 0,
                 bldg.total_open or 0,
                 bldg.visit_count,
@@ -133,13 +133,13 @@ class ExportTractagesCSV(BaseCSVExportView):
 
     def write_csv(self, writer):
         writer.writerow(['Nom', 'Type', 'Adresse', 'Bureau', 'Nb Tractages', 'Latitude', 'Longitude'])
-        for t in Tractage.objects.select_related('voting_desk').order_by('label'):
+        for t in Tractage.objects.select_related('voting_desk').order_by('name'):
             writer.writerow([
-                t.label,
-                t.get_type_tractage_display(),
+                t.name,
+                t.get_location_type_display(),
                 t.address,
                 t.voting_desk.code if t.voting_desk else '',
-                t.nb_tractage,
+                t.count,
                 t.latitude or '',
                 t.longitude or ''
             ])

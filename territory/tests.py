@@ -133,12 +133,12 @@ class BuildingModelTests(TestCase):
         building = Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=self.voting_desk
         )
         self.assertEqual(building.street_number, "12")
         self.assertEqual(building.street_name, "Rue de la République")
-        self.assertEqual(building.num_electors, 45)
+        self.assertEqual(building.elector_count, 45)
         self.assertEqual(building.voting_desk, self.voting_desk)
 
     def test_building_str_representation(self):
@@ -146,7 +146,7 @@ class BuildingModelTests(TestCase):
         building = Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=self.voting_desk
         )
         self.assertEqual(str(building), "12 Rue de la République")
@@ -156,13 +156,13 @@ class BuildingModelTests(TestCase):
         Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=self.voting_desk
         )
         Building.objects.create(
             street_number="14",
             street_name="Rue de la République",
-            num_electors=30,
+            elector_count=30,
             voting_desk=self.voting_desk
         )
         self.assertEqual(self.voting_desk.buildings.count(), 2)
@@ -172,7 +172,7 @@ class BuildingModelTests(TestCase):
         Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=self.voting_desk
         )
         self.assertEqual(Building.objects.count(), 1)
@@ -184,7 +184,7 @@ class BuildingModelTests(TestCase):
         Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=self.voting_desk
         )
         self.assertEqual(Building.objects.count(), 1)
@@ -193,14 +193,14 @@ class BuildingModelTests(TestCase):
         self.assertEqual(Building.objects.count(), 0)
         self.assertEqual(VotingDesk.objects.count(), 0)
 
-    def test_building_num_electors_default(self):
-        """Test that num_electors defaults to 0."""
+    def test_building_elector_count_default(self):
+        """Test that elector_count defaults to 0."""
         building = Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
             voting_desk=self.voting_desk
         )
-        self.assertEqual(building.num_electors, 0)
+        self.assertEqual(building.elector_count, 0)
 
     def test_building_unique_together(self):
         """Test that street_number + street_name + voting_desk must be unique together."""
@@ -235,7 +235,7 @@ class HierarchyIntegrationTests(TestCase):
         building = Building.objects.create(
             street_number="12",
             street_name="Rue de la République",
-            num_electors=45,
+            elector_count=45,
             voting_desk=voting_desk
         )
 
@@ -266,12 +266,12 @@ class HierarchyIntegrationTests(TestCase):
         vd1 = VotingDesk.objects.create(name="Bureau 601", code="BV601", district=district)
         vd2 = VotingDesk.objects.create(name="Bureau 602", code="BV602", district=district)
 
-        Building.objects.create(street_number="12", street_name="Rue A", num_electors=50, voting_desk=vd1)
-        Building.objects.create(street_number="14", street_name="Rue A", num_electors=30, voting_desk=vd1)
-        Building.objects.create(street_number="1", street_name="Rue B", num_electors=20, voting_desk=vd2)
+        Building.objects.create(street_number="12", street_name="Rue A", elector_count=50, voting_desk=vd1)
+        Building.objects.create(street_number="14", street_name="Rue A", elector_count=30, voting_desk=vd1)
+        Building.objects.create(street_number="1", street_name="Rue B", elector_count=20, voting_desk=vd2)
 
         from django.db.models import Sum
         total_electors = Building.objects.filter(
             voting_desk__district=district
-        ).aggregate(total=Sum('num_electors'))['total']
+        ).aggregate(total=Sum('elector_count'))['total']
         self.assertEqual(total_electors, 100)
