@@ -1,7 +1,7 @@
 import csv
 import io
 from django.contrib import admin, messages
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.shortcuts import render, redirect
 from django.urls import path
 
@@ -14,19 +14,27 @@ class DistrictAdmin(admin.ModelAdmin):
     search_fields = ('name', 'code')
     ordering = ('code',)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            _voting_desk_count=Count('voting_desks', distinct=True),
+            _building_count=Count('voting_desks__buildings', distinct=True),
+            _total_electors=Sum('voting_desks__buildings__num_electors'),
+        )
+
     def voting_desk_count(self, obj):
-        return obj.voting_desks.count()
+        return obj._voting_desk_count
     voting_desk_count.short_description = "Bureaux"
+    voting_desk_count.admin_order_field = '_voting_desk_count'
 
     def building_count(self, obj):
-        return Building.objects.filter(voting_desk__district=obj).count()
+        return obj._building_count
     building_count.short_description = "Immeubles"
+    building_count.admin_order_field = '_building_count'
 
     def total_electors(self, obj):
-        return Building.objects.filter(
-            voting_desk__district=obj
-        ).aggregate(total=Sum('num_electors'))['total'] or 0
+        return obj._total_electors or 0
     total_electors.short_description = "Électeurs"
+    total_electors.admin_order_field = '_total_electors'
 
 
 @admin.register(VotingDesk)
@@ -39,13 +47,21 @@ class VotingDeskAdmin(admin.ModelAdmin):
     list_editable = ('priority',)
     change_list_template = 'admin/territory/votingdesk/change_list.html'
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            _building_count=Count('buildings', distinct=True),
+            _total_electors=Sum('buildings__num_electors'),
+        )
+
     def building_count(self, obj):
-        return obj.buildings.count()
+        return obj._building_count
     building_count.short_description = "Immeubles"
+    building_count.admin_order_field = '_building_count'
 
     def total_electors(self, obj):
-        return obj.buildings.aggregate(total=Sum('num_electors'))['total'] or 0
+        return obj._total_electors or 0
     total_electors.short_description = "Électeurs"
+    total_electors.admin_order_field = '_total_electors'
 
     def get_urls(self):
         urls = super().get_urls()
@@ -118,17 +134,27 @@ class BuildingAdmin(admin.ModelAdmin):
     list_editable = ('is_hlm', 'is_finished',)
     change_list_template = 'admin/territory/building/change_list.html'
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            _visit_count=Count('visits', distinct=True),
+            _total_knocked=Sum('visits__knocked_doors'),
+            _total_open=Sum('visits__open_doors'),
+        )
+
     def visit_count(self, obj):
-        return obj.visits.count()
+        return obj._visit_count
     visit_count.short_description = "Visites"
+    visit_count.admin_order_field = '_visit_count'
 
     def total_knocked(self, obj):
-        return obj.visits.aggregate(total=Sum('knocked_doors'))['total'] or 0
+        return obj._total_knocked or 0
     total_knocked.short_description = "Frappées"
+    total_knocked.admin_order_field = '_total_knocked'
 
     def total_open(self, obj):
-        return obj.visits.aggregate(total=Sum('open_doors'))['total'] or 0
+        return obj._total_open or 0
     total_open.short_description = "Ouvertes"
+    total_open.admin_order_field = '_total_open'
 
     def get_urls(self):
         urls = super().get_urls()

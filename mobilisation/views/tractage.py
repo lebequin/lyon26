@@ -34,12 +34,25 @@ class TractageCreateView(LoginRequiredMixin, View):
         })
 
     def post(self, request):
+        try:
+            nb_tractage = int(request.POST.get('nb_tractage', 0) or 0)
+        except (ValueError, TypeError):
+            nb_tractage = 0
+
+        latitude_raw = request.POST.get('latitude') or None
+        longitude_raw = request.POST.get('longitude') or None
+        try:
+            latitude = float(latitude_raw) if latitude_raw else None
+            longitude = float(longitude_raw) if longitude_raw else None
+        except (ValueError, TypeError):
+            latitude = longitude = None
+
         Tractage.objects.create(
             label=request.POST.get('label', ''),
             address=request.POST.get('address', ''),
-            latitude=request.POST.get('latitude') or None,
-            longitude=request.POST.get('longitude') or None,
-            nb_tractage=int(request.POST.get('nb_tractage', 0)),
+            latitude=latitude,
+            longitude=longitude,
+            nb_tractage=nb_tractage,
             voting_desk_id=request.POST.get('voting_desk') or None,
             type_tractage=request.POST.get('type_tractage', 'autre')
         )
@@ -63,9 +76,20 @@ class TractageEditView(LoginRequiredMixin, View):
         tractage = get_object_or_404(Tractage, pk=pk)
         tractage.label = request.POST.get('label', '')
         tractage.address = request.POST.get('address', '')
-        tractage.latitude = request.POST.get('latitude') or None
-        tractage.longitude = request.POST.get('longitude') or None
-        tractage.nb_tractage = int(request.POST.get('nb_tractage', 0))
+
+        latitude_raw = request.POST.get('latitude') or None
+        longitude_raw = request.POST.get('longitude') or None
+        try:
+            tractage.latitude = float(latitude_raw) if latitude_raw else None
+            tractage.longitude = float(longitude_raw) if longitude_raw else None
+        except (ValueError, TypeError):
+            tractage.latitude = tractage.longitude = None
+
+        try:
+            tractage.nb_tractage = int(request.POST.get('nb_tractage', 0) or 0)
+        except (ValueError, TypeError):
+            tractage.nb_tractage = 0
+
         tractage.voting_desk_id = request.POST.get('voting_desk') or None
         tractage.type_tractage = request.POST.get('type_tractage', 'autre')
         tractage.save()

@@ -36,20 +36,16 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(Visit)
 class VisitAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'date', 'knocked_doors', 'open_doors', 'open_rate', 'building_list')
-    list_filter = ('date', 'buildings__voting_desk__district', 'buildings__voting_desk')
-    filter_horizontal = ('buildings',)
+    list_display = ('__str__', 'date', 'knocked_doors', 'open_doors', 'open_rate', 'building_display')
+    list_filter = ('date', 'building__voting_desk__district', 'building__voting_desk')
+    raw_id_fields = ('building',)
     date_hierarchy = 'date'
     ordering = ('-date', '-created_at')
     change_list_template = 'admin/mobilisation/visit/change_list.html'
 
-    def building_list(self, obj):
-        buildings = obj.buildings.all()[:3]
-        result = ", ".join(str(b) for b in buildings)
-        if obj.buildings.count() > 3:
-            result += f" (+{obj.buildings.count() - 3})"
-        return result
-    building_list.short_description = "Immeubles"
+    def building_display(self, obj):
+        return str(obj.building) if obj.building else '-'
+    building_display.short_description = "Immeuble"
 
     def open_rate(self, obj):
         return f"{obj.open_rate}%"
@@ -119,7 +115,8 @@ class VisitAdmin(admin.ModelAdmin):
                     )
 
                     if building:
-                        visit.buildings.add(building)
+                        visit.building = building
+                        visit.save(update_fields=['building'])
 
                     created += 1
 

@@ -9,15 +9,33 @@ from territory.models import Building, VotingDesk
 from ..models import Visit, Tractage, ElectionResult
 
 
-class ExportElectionsCSV(LoginRequiredMixin, View):
-    """Export election results to CSV"""
+def compute_open_rate(open_doors, knocked_doors):
+    """Return open rate as a rounded percentage, or 0 if no doors knocked."""
+    if not knocked_doors:
+        return 0
+    return round((open_doors / knocked_doors) * 100, 1)
+
+
+class BaseCSVExportView(LoginRequiredMixin, View):
+    filename = 'export.csv'
 
     def get(self, request):
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="elections.csv"'
+        response['Content-Disposition'] = f'attachment; filename="{self.filename}"'
         response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
-
         writer = csv.writer(response, delimiter=';')
+        self.write_csv(writer)
+        return response
+
+    def write_csv(self, writer):
+        raise NotImplementedError
+
+
+class ExportElectionsCSV(BaseCSVExportView):
+    """Export election results to CSV"""
+    filename = 'elections.csv'
+
+    def write_csv(self, writer):
         writer.writerow([
             'BV', 'Lieu', 'Quartier',
             'REG21 Exprimes', 'REG21 Voix UGE', 'REG21 % UGE', 'REG21 Abst %',
@@ -25,10 +43,7 @@ class ExportElectionsCSV(LoginRequiredMixin, View):
             'LEG24 Exprimes', 'LEG24 Voix NFP', 'LEG24 % NFP', 'LEG24 Abst %',
             'Delta % NFP'
         ])
-
-        results = ElectionResult.objects.select_related('voting_desk').order_by('voting_desk__code')
-
-        for r in results:
+        for r in ElectionResult.objects.select_related('voting_desk').order_by('voting_desk__code'):
             writer.writerow([
                 r.voting_desk.code,
                 r.location,
@@ -39,24 +54,16 @@ class ExportElectionsCSV(LoginRequiredMixin, View):
                 r.delta_nfp_percent
             ])
 
-        return response
 
-
-class ExportVisitsCSV(LoginRequiredMixin, View):
+class ExportVisitsCSV(BaseCSVExportView):
     """Export visits data to CSV"""
+    filename = 'visites.csv'
 
-    def get(self, request):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="visites.csv"'
-        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
-
-        writer = csv.writer(response, delimiter=';')
+    def write_csv(self, writer):
         writer.writerow(['Date', 'Adresse', 'Bureau', 'Portes Ouvertes', 'Portes Frappees', 'Commentaire'])
-
-        visits = Visit.objects.prefetch_related('buildings', 'buildings__voting_desk').order_by('-date', '-created_at')
-
+        visits = Visit.objects.select_related('building', 'building__voting_desk').order_by('-date', '-created_at')
         for visit in visits:
-            building = visit.buildings.first()
+            building = visit.building
             writer.writerow([
                 visit.date.strftime('%Y-%m-%d') if visit.date else '',
                 str(building) if building else '',
@@ -66,32 +73,23 @@ class ExportVisitsCSV(LoginRequiredMixin, View):
                 visit.comment or ''
             ])
 
-        return response
 
-
-class ExportVotingDesksCSV(LoginRequiredMixin, View):
+class ExportVotingDesksCSV(BaseCSVExportView):
     """Export voting desks data to CSV"""
+    filename = 'bureaux_de_vote.csv'
 
-    def get(self, request):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="bureaux_de_vote.csv"'
-        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
-
-        writer = csv.writer(response, delimiter=';')
+    def write_csv(self, writer):
         writer.writerow(['Code', 'Nom', 'Adresse', 'Priorite', 'Nb Immeubles', 'Nb Electeurs', 'Portes Frappees', 'Portes Ouvertes', 'Couverture %'])
-
         voting_desks = VotingDesk.objects.annotate(
             total_electors=Sum('buildings__num_electors'),
             total_knocked=Sum('buildings__visits__knocked_doors'),
             total_open=Sum('buildings__visits__open_doors'),
             building_count=Count('buildings')
         ).order_by('code')
-
         for desk in voting_desks:
             total_electors = desk.total_electors or 0
             total_knocked = desk.total_knocked or 0
             coverage = round((total_knocked / total_electors * 100), 1) if total_electors > 0 else 0
-
             writer.writerow([
                 desk.code,
                 desk.name,
@@ -104,26 +102,16 @@ class ExportVotingDesksCSV(LoginRequiredMixin, View):
                 coverage
             ])
 
-        return response
 
-
-class ExportBuildingsCSV(LoginRequiredMixin, View):
+class ExportBuildingsCSV(BaseCSVExportView):
     """Export buildings data to CSV"""
+    filename = 'immeubles.csv'
 
-    def get(self, request):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="immeubles.csv"'
-        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
-
-        writer = csv.writer(response, delimiter=';')
+    def write_csv(self, writer):
         writer.writerow(['Bureau', 'Numero', 'Rue', 'Electeurs', 'Portes Frappees', 'Portes Ouvertes', 'Nb Visites', 'Termine', 'Latitude', 'Longitude'])
-
-        buildings = Building.objects.select_related('voting_desk').annotate(
-            total_knocked=Sum('visits__knocked_doors'),
-            total_open=Sum('visits__open_doors'),
-            visit_count=Count('visits')
-        ).order_by('voting_desk__code', 'street_name', 'street_number')
-
+        buildings = Building.objects.select_related('voting_desk').with_visit_stats().order_by(
+            'voting_desk__code', 'street_name', 'street_number'
+        )
         for bldg in buildings:
             writer.writerow([
                 bldg.voting_desk.code,
@@ -138,23 +126,14 @@ class ExportBuildingsCSV(LoginRequiredMixin, View):
                 bldg.longitude or ''
             ])
 
-        return response
 
-
-class ExportTractagesCSV(LoginRequiredMixin, View):
+class ExportTractagesCSV(BaseCSVExportView):
     """Export tractages data to CSV"""
+    filename = 'tractages.csv'
 
-    def get(self, request):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="tractages.csv"'
-        response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
-
-        writer = csv.writer(response, delimiter=';')
+    def write_csv(self, writer):
         writer.writerow(['Nom', 'Type', 'Adresse', 'Bureau', 'Nb Tractages', 'Latitude', 'Longitude'])
-
-        tractages = Tractage.objects.select_related('voting_desk').order_by('label')
-
-        for t in tractages:
+        for t in Tractage.objects.select_related('voting_desk').order_by('label'):
             writer.writerow([
                 t.label,
                 t.get_type_tractage_display(),
@@ -164,5 +143,3 @@ class ExportTractagesCSV(LoginRequiredMixin, View):
                 t.latitude or '',
                 t.longitude or ''
             ])
-
-        return response

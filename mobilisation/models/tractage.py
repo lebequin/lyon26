@@ -37,7 +37,6 @@ class Tractage(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = 'mobilisation'
         verbose_name = "Tractage"
         verbose_name_plural = "Tractages"
         ordering = ['-nb_tractage', 'label']

@@ -2,11 +2,12 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Q
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, render, redirect
 
 from territory.models import Building, VotingDesk, District
+from .exports import compute_open_rate
 
 
 class BuildingsAPIView(LoginRequiredMixin, View):
@@ -28,7 +29,7 @@ class BuildingsAPIView(LoginRequiredMixin, View):
         for bldg in buildings:
             total_open = bldg.total_open or 0
             total_knocked = bldg.total_knocked or 0
-            open_rate = round((total_open / total_knocked * 100), 1) if total_knocked > 0 else 0
+            open_rate = compute_open_rate(total_open, total_knocked)
 
             data.append({
                 'id': bldg.pk,
@@ -59,16 +60,12 @@ class BuildingSearchView(LoginRequiredMixin, View):
             Q(street_name__icontains=query) | Q(street_number__icontains=query),
             latitude__isnull=False,
             longitude__isnull=False
-        ).select_related('voting_desk').annotate(
-            total_open=Sum('visits__open_doors'),
-            total_knocked=Sum('visits__knocked_doors'),
-            visit_count=Count('visits')
-        ).order_by('-num_electors', 'street_name', 'street_number')
+        ).select_related('voting_desk').with_visit_stats().order_by('-num_electors', 'street_name', 'street_number')
 
         for bldg in buildings:
             bldg.total_open = bldg.total_open or 0
             bldg.total_knocked = bldg.total_knocked or 0
-            bldg.open_rate = round((bldg.total_open / bldg.total_knocked * 100), 1) if bldg.total_knocked > 0 else 0
+            bldg.open_rate = compute_open_rate(bldg.total_open, bldg.total_knocked)
 
         return render(request, 'mobilisation/partials/building_search_results.html', {'buildings': buildings})
 
@@ -78,17 +75,13 @@ class BuildingDetailView(LoginRequiredMixin, View):
 
     def get(self, request, pk):
         building = get_object_or_404(
-            Building.objects.select_related('voting_desk').annotate(
-                total_open=Sum('visits__open_doors'),
-                total_knocked=Sum('visits__knocked_doors'),
-                visit_count=Count('visits')
-            ),
+            Building.objects.select_related('voting_desk').with_visit_stats(),
             pk=pk
         )
 
         building.total_open = building.total_open or 0
         building.total_knocked = building.total_knocked or 0
-        building.open_rate = round((building.total_open / building.total_knocked * 100), 1) if building.total_knocked > 0 else 0
+        building.open_rate = compute_open_rate(building.total_open, building.total_knocked)
 
         return render(request, 'mobilisation/partials/building_info.html', {'building': building})
 
@@ -107,11 +100,7 @@ class BuildingListView(LoginRequiredMixin, TemplateView):
 
         buildings = Building.objects.filter(
             voting_desk=voting_desk
-        ).annotate(
-            total_knocked=Sum('visits__knocked_doors'),
-            total_open=Sum('visits__open_doors'),
-            visit_count=Count('visits')
-        ).order_by('-num_electors')
+        ).with_visit_stats().order_by('-num_electors')
 
         context['buildings'] = buildings
 
@@ -147,13 +136,26 @@ class BuildingCreateView(LoginRequiredMixin, View):
     def post(self, request, voting_desk_code):
         voting_desk = get_object_or_404(VotingDesk, code=voting_desk_code)
 
+        try:
+            num_electors = int(request.POST.get('num_electors', 0) or 0)
+        except (ValueError, TypeError):
+            num_electors = 0
+
+        latitude_raw = request.POST.get('latitude') or None
+        longitude_raw = request.POST.get('longitude') or None
+        try:
+            latitude = float(latitude_raw) if latitude_raw else None
+            longitude = float(longitude_raw) if longitude_raw else None
+        except (ValueError, TypeError):
+            latitude = longitude = None
+
         Building.objects.create(
             street_number=request.POST.get('street_number', ''),
             street_name=request.POST.get('street_name', ''),
-            num_electors=int(request.POST.get('num_electors', 0)),
+            num_electors=num_electors,
             voting_desk=voting_desk,
-            latitude=request.POST.get('latitude') or None,
-            longitude=request.POST.get('longitude') or None,
+            latitude=latitude,
+            longitude=longitude,
             is_hlm=request.POST.get('is_hlm') == 'on'
         )
 
@@ -169,11 +171,7 @@ class BuildingVisitsView(LoginRequiredMixin, TemplateView):
 
         building_id = self.kwargs.get('pk')
         building = get_object_or_404(
-            Building.objects.select_related('voting_desk').annotate(
-                total_open=Sum('visits__open_doors'),
-                total_knocked=Sum('visits__knocked_doors'),
-                visit_count=Count('visits')
-            ),
+            Building.objects.select_related('voting_desk').with_visit_stats(),
             pk=building_id
         )
 
@@ -182,7 +180,7 @@ class BuildingVisitsView(LoginRequiredMixin, TemplateView):
 
         context['total_open'] = building.total_open or 0
         context['total_knocked'] = building.total_knocked or 0
-        context['open_rate'] = round((context['total_open'] / context['total_knocked'] * 100), 1) if context['total_knocked'] > 0 else 0
+        context['open_rate'] = compute_open_rate(context['total_open'], context['total_knocked'])
 
         return context
 
@@ -201,11 +199,9 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         is_finished = self.request.GET.get('finished', '')
         query = self.request.GET.get('q', '').strip()
 
-        buildings = Building.objects.select_related('voting_desk', 'voting_desk__district').annotate(
-            total_open=Sum('visits__open_doors'),
-            total_knocked=Sum('visits__knocked_doors'),
-            visit_count=Count('visits')
-        )
+        buildings = Building.objects.select_related(
+            'voting_desk', 'voting_desk__district'
+        ).with_visit_stats()
 
         if district_code:
             buildings = buildings.filter(voting_desk__district__code=district_code)
@@ -247,7 +243,7 @@ class AddressesListView(LoginRequiredMixin, TemplateView):
         for bldg in page_obj:
             bldg.total_open = bldg.total_open or 0
             bldg.total_knocked = bldg.total_knocked or 0
-            bldg.open_rate = round((bldg.total_open / bldg.total_knocked * 100), 1) if bldg.total_knocked > 0 else 0
+            bldg.open_rate = compute_open_rate(bldg.total_open, bldg.total_knocked)
 
         context['buildings'] = page_obj
         context['page_obj'] = page_obj

@@ -1,8 +1,2 @@
-import os
-
-
-def admin_username(request):
-    """Add DJANGO_SUPERUSER_USERNAME to template context."""
-    return {
-        'ADMIN_USERNAME': os.environ.get('DJANGO_SUPERUSER_USERNAME', '')
-    }
+# Ce fichier est conservé pour compatibilité mais ne contient plus de logique.
+# Le lien admin dans base.html utilise désormais user.is_staff (variable Django native).

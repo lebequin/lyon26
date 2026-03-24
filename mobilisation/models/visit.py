@@ -4,15 +4,17 @@ from datetime import date
 
 class Visit(models.Model):
     """
-    Represents a door-to-door visit session.
-    Can be linked to multiple buildings (for shared entrances).
+    Represents a door-to-door visit session for a single building.
     """
     TOUR_CHOICES = [(1, '1er tour'), (2, '2nd tour')]
 
-    buildings = models.ManyToManyField(
+    building = models.ForeignKey(
         'territory.Building',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='visits',
-        verbose_name="Immeubles"
+        verbose_name="Immeuble"
     )
     tour = models.PositiveSmallIntegerField(
         choices=TOUR_CHOICES,
@@ -26,7 +28,6 @@ class Visit(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        app_label = 'mobilisation'
         verbose_name = "Visite"
         verbose_name_plural = "Visites"
         ordering = ['-date', '-created_at']

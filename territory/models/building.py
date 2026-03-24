@@ -1,8 +1,20 @@
 from django.db import models
+from django.db.models import Sum, Count
 from .voting_desk import VotingDesk
 
 
+class BuildingQuerySet(models.QuerySet):
+    def with_visit_stats(self):
+        """Annotate buildings with visit statistics (total_open, total_knocked, visit_count)."""
+        return self.annotate(
+            total_open=Sum('visits__open_doors'),
+            total_knocked=Sum('visits__knocked_doors'),
+            visit_count=Count('visits'),
+        )
+
+
 class Building(models.Model):
+    objects = BuildingQuerySet.as_manager()
     """
     Represents a building with electors.
     Belongs to a VotingDesk.

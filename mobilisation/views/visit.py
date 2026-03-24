@@ -26,12 +26,12 @@ class AddVisitView(LoginRequiredMixin, View):
             building = get_object_or_404(Building, pk=building_id)
 
             visit = Visit.objects.create(
+                building=building,
                 open_doors=open_doors,
                 knocked_doors=knocked_doors,
                 comment=comment,
                 tour=tour
             )
-            visit.buildings.add(building)
 
             if is_finished:
                 building.is_finished = True
@@ -64,14 +64,14 @@ class VisitCreateView(LoginRequiredMixin, View):
         is_finished = request.POST.get('is_finished') == 'on'
         tour = int(request.POST.get('tour', 2))
 
-        visit = Visit.objects.create(
+        Visit.objects.create(
+            building=building,
             open_doors=open_doors,
             knocked_doors=knocked_doors,
             date=date,
             comment=comment,
             tour=tour
         )
-        visit.buildings.add(building)
 
         if is_finished:
             building.is_finished = True
@@ -84,19 +84,18 @@ class VisitEditView(LoginRequiredMixin, View):
     """Edit an existing visit"""
 
     def get(self, request, pk):
-        visit = get_object_or_404(Visit, pk=pk)
-        building = visit.buildings.first()
+        visit = get_object_or_404(Visit.objects.select_related('building'), pk=pk)
         next_url = request.GET.get('next', '')
         return render(request, 'mobilisation/visit_form.html', {
-            'building': building,
+            'building': visit.building,
             'visit': visit,
             'is_edit': True,
             'next': next_url,
         })
 
     def post(self, request, pk):
-        visit = get_object_or_404(Visit, pk=pk)
-        building = visit.buildings.first()
+        visit = get_object_or_404(Visit.objects.select_related('building'), pk=pk)
+        building = visit.building
 
         visit.open_doors = int(request.POST.get('open_doors', 0))
         visit.knocked_doors = int(request.POST.get('knocked_doors', 0))
@@ -124,14 +123,13 @@ class VisitDeleteView(LoginRequiredMixin, View):
     """Delete a visit"""
 
     def post(self, request, pk):
-        visit = get_object_or_404(Visit, pk=pk)
-        building = visit.buildings.first()
+        visit = get_object_or_404(Visit.objects.select_related('building'), pk=pk)
+        building = visit.building
         building_pk = building.pk if building else None
         visit.delete()
 
         if building and building.is_finished:
-            has_remaining_visits = building.visits.exists()
-            if not has_remaining_visits:
+            if not building.visits.exists():
                 building.is_finished = False
                 building.save(update_fields=['is_finished'])
 
@@ -148,17 +146,19 @@ class ActionsListView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         query = self.request.GET.get('q', '').strip()
-        visits = Visit.objects.prefetch_related('buildings', 'buildings__voting_desk').order_by('-date', '-created_at')
+        visits = Visit.objects.select_related(
+            'building', 'building__voting_desk'
+        ).order_by('-date', '-created_at')
 
         if query:
             visits = visits.filter(
-                Q(buildings__street_name__icontains=query) |
-                Q(buildings__street_number__icontains=query)
-            ).distinct()
+                Q(building__street_name__icontains=query) |
+                Q(building__street_number__icontains=query)
+            )
 
         visits_with_info = []
         for visit in visits:
-            building = visit.buildings.first()
+            building = visit.building
             visits_with_info.append({
                 'visit': visit,
                 'building': building,

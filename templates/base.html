@@ -181,7 +181,7 @@
                     <span class="text-xl" id="theme-icon">🌙</span>
                     <span class="font-medium" id="theme-text">Mode sombre</span>
                 </button>
-                {% if user.username == ADMIN_USERNAME %}
+                {% if user.is_staff %}
                 <a href="{% url 'admin:index' %}" class="flex items-center gap-4 p-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all" target="_blank">
                     <span class="text-xl">⚙️</span>
                     <span class="font-medium">Administration</span>
