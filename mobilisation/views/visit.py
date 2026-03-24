@@ -21,7 +21,7 @@ class VisitCreateAPIView(LoginRequiredMixin, View):
             open_doors = int(request.POST.get('open_doors', 0))
             comment = request.POST.get('comment', '')
             is_finished = request.POST.get('is_finished') == 'on'
-            round_val = int(request.POST.get('tour', 2))
+            round_val = int(request.POST.get('round', 2))
 
             building = get_object_or_404(Building, pk=building_id)
 
@@ -62,7 +62,7 @@ class VisitCreateView(LoginRequiredMixin, View):
         date = request.POST.get('date')
         comment = request.POST.get('comment', '')
         is_finished = request.POST.get('is_finished') == 'on'
-        round_val = int(request.POST.get('tour', 2))
+        round_val = int(request.POST.get('round', 2))
 
         Visit.objects.create(
             building=building,
@@ -103,7 +103,7 @@ class VisitEditView(LoginRequiredMixin, View):
         if date_str:
             visit.date = datetime.strptime(date_str, '%Y-%m-%d').date()
         visit.comment = request.POST.get('comment', '')
-        visit.round = int(request.POST.get('tour', visit.round))
+        visit.round = int(request.POST.get('round', visit.round))
         visit.save()
 
         is_finished = request.POST.get('is_finished') == 'on'

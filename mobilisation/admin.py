@@ -205,7 +205,7 @@ class ElectionAdmin(admin.ModelAdmin):
 @admin.register(Nuance)
 class NuanceAdmin(admin.ModelAdmin):
     list_display = ('code', 'name', 'color')
-    search_fields = ('code', 'label')
+    search_fields = ('code', 'name')
 
 
 @admin.register(Alliance)
