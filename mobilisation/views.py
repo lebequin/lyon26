@@ -799,7 +799,7 @@ class ExportVisitsCSV(LoginRequiredMixin, View):
         response.write('\ufeff'.encode('utf-8'))  # BOM for Excel
 
         writer = csv.writer(response, delimiter=';')
-        writer.writerow(['Date', 'Adresse', 'Bureau', 'Portes Ouvertes', 'Portes Frappees', 'Commentaire'])
+        writer.writerow(['Date', 'Immeuble', 'Adresse', 'Bureau', 'Portes Ouvertes', 'Portes Frappees', 'Commentaire'])
 
         visits = Visit.objects.prefetch_related('buildings', 'buildings__voting_desk').order_by('-date', '-created_at')
 
@@ -807,6 +807,7 @@ class ExportVisitsCSV(LoginRequiredMixin, View):
             building = visit.buildings.first()
             writer.writerow([
                 visit.date.strftime('%Y-%m-%d') if visit.date else '',
+                building.id if building else '',
                 str(building) if building else '',
                 building.voting_desk.code if building and building.voting_desk else '',
                 visit.open_doors,
