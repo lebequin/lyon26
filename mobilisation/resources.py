@@ -2,7 +2,7 @@ from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget, ManyToManyWidget
 
 from django.contrib.auth.models import User
-from territory.models import VotingDesk
+from territory.models import VotingDesk, Building
 
 from .models import (
     Visit, Tractage, ElectionResult,
@@ -15,7 +15,7 @@ class VisitResource(resources.ModelResource):
     buildings = fields.Field(
         column_name='buildings',
         attribute='buildings',
-        widget=ManyToManyWidget('territory.Building', field='id'),
+        widget=ManyToManyWidget(Building, field='id'),
     )
 
     class Meta:
